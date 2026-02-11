@@ -1,0 +1,42 @@
+#+TITLE: Hackathon TechXplosion
+#+AUTHOR: Team TechXplosion
+#+STARTUP: overview
+#+TODO: TODO IN-PROGRESS | DONE SCRAPPED
+
+* Idea
+** Problem
+** Solution
+** Why it matters
+
+* Tech Stack
+- Python 3.14
+- Tooling: uv, ruff, basedpyright
+
+* Architecture
+** Overview
+** Key Components
+
+* Tasks
+** TODO Set up project skeleton
+** TODO Define the core idea
+** TODO Build MVP
+** TODO Prepare demo
+
+* Team
+| Name | Focus |
+|------+-------|
+|      |       |
+|      |       |
+
+* Timeline
+| Time     | Dany | Jonas |
+|----------+------+-------|
+|          |      |       |
+|          |      |       |
+
+* Demo Notes
+** Pitch (30-60 sec)
+** Live demo flow
+** Backup plan if demo breaks
+
+* Scratchpad
