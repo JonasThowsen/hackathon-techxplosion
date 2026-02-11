@@ -8,5 +8,6 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.37.4",
     "ruff>=0.15.0",
 ]
