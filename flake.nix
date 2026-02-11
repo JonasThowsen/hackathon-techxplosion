@@ -22,6 +22,7 @@
         buildInputs = [
           pkgs.python314
           pkgs.uv
+          pkgs.just
         ];
       };
     };
