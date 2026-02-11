@@ -9,88 +9,35 @@ dependencies = []
 [dependency-groups]
 dev = [
     "basedpyright>=1.37.4",
-    "mypy>=1.19.1",
     "ruff>=0.15.0",
 ]
 
 [tool.ruff]
 target-version = "py314"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = [
-    "F",     # pyflakes
+    "F",     # pyflakes (real errors)
     "E",     # pycodestyle errors
     "W",     # pycodestyle warnings
     "I",     # isort
-    "N",     # pep8-naming
     "UP",    # pyupgrade
-    "B",     # flake8-bugbear
-    "A",     # flake8-builtins
+    "B",     # flake8-bugbear (common gotchas)
     "SIM",   # flake8-simplify
-    "S",     # flake8-bandit (security)
     "C4",    # flake8-comprehensions
-    "DTZ",   # flake8-datetimez
-    "T20",   # flake8-print
-    "RET",   # flake8-return
-    "PTH",   # flake8-use-pathlib
-    "ERA",   # eradicate (commented-out code)
-    "PL",    # pylint
     "RUF",   # ruff-specific rules
-    "PERF",  # perflint
-    "FBT",   # flake8-boolean-trap
-    "ARG",   # flake8-unused-arguments
-    "ICN",   # flake8-import-conventions
-    "PIE",   # flake8-pie
-    "PT",    # flake8-pytest-style
-    "RSE",   # flake8-raise
-    "TCH",   # flake8-type-checking
-    "TID",   # flake8-tidy-imports
 ]
 ignore = [
-    "S101",   # allow assert (useful in tests)
-    "PLR09",  # too many X (arguments, returns, etc.)
-]
-
-[tool.ruff.lint.isort]
-known-first-party = ["hackathon_techxplosion"]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "ARG", "FBT"]
-
-[tool.mypy]
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-warn_unreachable = true
-disallow_any_unimported = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-enable_error_code = [
-    "ignore-without-code",
-    "redundant-cast",
-    "truthy-bool",
-    "truthy-iterable",
-    "unused-awaitable",
+    "E501",   # line length (let formatter handle it)
+    "SIM108", # don't force ternary expressions
 ]
 
 [tool.basedpyright]
 typeCheckingMode = "strict"
-reportMissingTypeStubs = "warning"
-reportUnusedImport = "error"
-reportUnusedVariable = "error"
+reportMissingTypeStubs = false
+reportUnusedImport = "warning"
+reportUnusedVariable = "warning"
 reportUnnecessaryTypeIgnoreComment = "error"
-reportDeprecated = "warning"
-reportMissingParameterType = "error"
-reportUnnecessaryIsInstance = "warning"
-reportUnnecessaryCast = "warning"
-reportUnnecessaryComparison = "warning"
-reportUnnecessaryContains = "warning"
-reportImplicitStringConcatenation = "warning"
-reportUnusedExpression = "error"
 reportMatchNotExhaustive = "error"
+reportDeprecated = "warning"
