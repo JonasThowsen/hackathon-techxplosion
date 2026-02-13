@@ -94,6 +94,132 @@ Decreases:
 - [ ] Bruke soldata (vinkel, styrke, etc.. ) i kalkuleringer [[https://www.sunearthtools.com/dp/tools/pos_sun.php?lang=en][SunEarthTools]]
 ** Overview
 
+*** Data Flow Diagram
+
+#+begin_example
+  ┌─────────────────────-┐
+  │    IoT Sensors       │
+  │ (temp, occupancy,    │
+  │  co2, power, light)  │
+  └─────────┬────────────┘
+            │ raw readings
+            ▼
+  ┌──────────────────────────────────────────────────┐
+  │              Backend (FastAPI)                   │
+  │                                                  │
+  │  Sensors → Room → Floor → Building            │
+  │  (collect)  (detect waste)  (aggregate)          │
+  │                                                  │
+  │  Serves two things:                              │
+  │                                                  │
+  │  1. GET /building                                │
+  │     → BuildingLayout (geometry in meters)       │
+  │     → fetched once on page load                 │
+  │					             │
+  │  2. WS /ws                                       │
+  │     → MetricsUpdate (live sensor values)        │
+  │     → pushed every tick                         │
+  └─────┬──────────────────────────┬─────────────────┘
+        │                          │
+        │ BuildingLayout           │ MetricsUpdate
+        │ (once)                   │ (continuous)
+        ▼                          ▼
+  ┌──────────────────────────────────────────────────┐
+  │           Frontend (React + Canvas)              │
+  │                                                  │
+  │  1. GET /building → store geometry              │
+  │  2. WS /ws → receive metrics each tick          │
+  │  3. Merge metrics onto geometry by room id       │
+  │  4. Scale meter coords to canvas pixels          │
+  │  5. Draw rooms, color by selected metric         │
+  │                                                  │
+  │  All filtering (floor, metric) is client-side.   │
+  │  Backend does not know what the user looks at.   │
+  └──────────────────────────────────────────────────┘
+#+end_example
+
+*** Contract: Coordinate System
+
+All spatial values are in *meters*. Origin =(0, 0)= is the top-left corner
+of the building footprint. X increases rightward, Y increases downward.
+
+Rooms are axis-aligned rectangles defined by =x=, =y=, =w=, =h= in meters.
+
+The frontend scales meter coordinates to canvas pixels using:
+=pixel = meter * (canvas_size / building_size_m)=
+
+*** Contract: =GET /building= → BuildingLayout
+
+Fetched once on page load. Defines the physical structure.
+
+#+begin_src json
+{
+  "id": "building-1",
+  "name": "Student Housing A",
+  "width_m": 30.0,
+  "height_m": 18.0,
+  "floors": [
+    {
+      "floor_index": 0,
+      "label": "Floor 1",
+      "rooms": [
+        { "id": "r-101", "name": "Lobby",    "x": 0.0,  "y": 0.0, "w": 10.0, "h": 9.0 },
+        { "id": "r-102", "name": "Room 102", "x": 10.0, "y": 0.0, "w": 10.0, "h": 9.0 },
+        { "id": "r-103", "name": "Kitchen",  "x": 0.0,  "y": 9.0, "w": 15.0, "h": 9.0 }
+      ]
+    },
+    {
+      "floor_index": 1,
+      "label": "Floor 2",
+      "rooms": [
+        { "id": "r-201", "name": "Room 201", "x": 0.0,  "y": 0.0, "w": 15.0, "h": 9.0 },
+        { "id": "r-202", "name": "Room 202", "x": 15.0, "y": 0.0, "w": 15.0, "h": 9.0 }
+      ]
+    }
+  ]
+}
+#+end_src
+
+*** Contract: =WS /ws= → MetricsUpdate
+
+Pushed by backend every tick. Flat map of room id → current metrics.
+Frontend merges this into the stored geometry to color the rooms.
+
+#+begin_src json
+{
+  "tick": 1234,
+  "rooms": {
+    "r-101": {
+      "temperature": 22.5,
+      "occupancy": 0.4,
+      "co2": 450,
+      "power": 200,
+      "waste_patterns": []
+    },
+    "r-102": {
+      "temperature": 26.0,
+      "occupancy": 0.0,
+      "co2": 380,
+      "power": 180,
+      "waste_patterns": ["empty_room_heating_on"]
+    }
+  }
+}
+#+end_src
+
+*** Contract: Summary
+
+| What              | How             | Payload                        | When              |
+|-------------------+-----------------+--------------------------------+-------------------|
+| Building geometry | =GET /building= | rooms as =(x,y,w,h)= in meters | once on page load |
+| Live metrics      | =WS /ws=        | room id → metric values       | every tick        |
+
+- Geometry and metrics are *separate*. The backend can change room layouts
+  without touching the metrics stream, and vice versa.
+- Room =id= is the join key between geometry and metrics.
+- All coordinates in meters. Frontend scales to pixels.
+- Backend pushes *all* rooms every tick. Frontend filters by floor client-side.
+
 ** Key Components
 **** Entities:
 - IoT Sensor :: Heat | Air quality | Occupancy
