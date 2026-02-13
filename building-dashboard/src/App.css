@@ -1,42 +1,219 @@
+:root {
+  --bg-dark: #0f0f1a;
+  --bg-card: #1a1a2e;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+  --accent: #4a9eff;
+  --accent-hover: #6ab0ff;
+  --danger: #ff4444;
+  --success: #44ff88;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
+  min-height: 100vh;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid #333;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.building-name {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.main {
+  flex: 1;
   padding: 2rem;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.controls {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.control-group label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.card {
-  padding: 2em;
+.button-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.read-the-docs {
-  color: #888;
+.button-group button {
+  padding: 0.5rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.button-group button:hover {
+  background: #252540;
+  border-color: var(--accent);
+}
+
+.button-group button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.legend-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.legend-bar {
+  width: 200px;
+  height: 16px;
+  background: linear-gradient(to right, hsl(240, 80%, 50%), hsl(180, 80%, 50%), hsl(120, 80%, 50%), hsl(60, 80%, 50%), hsl(0, 80%, 50%));
+  border-radius: 4px;
+}
+
+.legend-values {
+  display: flex;
+  justify-content: space-between;
+  width: 200px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-left: -200px;
+  padding: 0 0.25rem;
+}
+
+.info-panel {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.tick {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+}
+
+.waste-alerts {
+  background: var(--bg-card);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--danger);
+}
+
+.waste-alerts h3 {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--danger);
+}
+
+.alert {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  padding: 0.25rem 0;
+}
+
+.alert-room {
+  font-weight: 600;
+}
+
+.alert-pattern {
+  color: var(--text-secondary);
+}
+
+.tooltip {
+  position: fixed;
+  background: var(--bg-card);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 0.75rem;
+  z-index: 1000;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.tooltip-header {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 0.15rem 0;
+}
+
+.tooltip-row span:first-child {
+  color: var(--text-secondary);
+}
+
+.tooltip-waste {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #333;
+  color: var(--danger);
+  font-size: 0.8rem;
 }

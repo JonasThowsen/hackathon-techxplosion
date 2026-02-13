@@ -1,0 +1,91 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { MetricsUpdate } from "../types";
+import { generateMockMetrics } from "../mocks/building";
+
+const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
+
+/**
+ * Connects to WebSocket for live metrics updates.
+ * Falls back to mock data if useMock is true or connection fails.
+ */
+export function useMetrics(useMock: boolean = true): {
+  metrics: MetricsUpdate;
+  connected: boolean;
+  error: string | null;
+} {
+  const [metrics, setMetrics] = useState<MetricsUpdate>(() =>
+    generateMockMetrics(0)
+  );
+  const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  const tickRef = useRef(0);
+
+  // Mock metrics simulation
+  useEffect(() => {
+    if (!useMock) return;
+
+    const interval = setInterval(() => {
+      tickRef.current++;
+      setMetrics(generateMockMetrics(tickRef.current));
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [useMock]);
+
+  // WebSocket connection
+  useEffect(() => {
+    if (useMock) return;
+
+    function connect() {
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setConnected(true);
+        setError(null);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as MetricsUpdate;
+          setMetrics(data);
+        } catch {
+          console.error("Failed to parse metrics:", event.data);
+        }
+      };
+
+      ws.onerror = () => {
+        setError("WebSocket error");
+      };
+
+      ws.onclose = () => {
+        setConnected(false);
+        // Reconnect after delay
+        setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      wsRef.current?.close();
+    };
+  }, [useMock]);
+
+  return { metrics, connected, error };
+}
+
+/**
+ * Sends a message through the WebSocket connection.
+ * Useful for future bidirectional communication.
+ */
+export function useSendMessage(): (message: unknown) => void {
+  const wsRef = useRef<WebSocket | null>(null);
+
+  return useCallback((message: unknown) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
+}
