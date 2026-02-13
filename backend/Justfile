@@ -15,7 +15,11 @@ lint-ci:
 
 # Type checking
 typecheck:
-    uv run basedpyright .
+    uv run python -m basedpyright .
+
+# Run the dev server
+run:
+    uv run uvicorn main:app --reload
 
 # Full CI pipeline
 ci: lint-ci typecheck
