@@ -98,7 +98,101 @@ Decreases:
 - IoT Sensor :: Heat | Air quality | Occupancy
 - Metric-improver-devices :: Power Consumption && ( Heating effect | Air quality effect and
   spreading of air )
+** Polymorphic Hierarchical Approach
 
+The same core logic -- collect metrics, identify waste, act, visualize --
+applies at every level of the building hierarchy. Start at the smallest unit
+(room), compose upward (floor, building). Each level produces concrete metrics
+about *where* energy is wasted and *what* to do about it.
+
+*** Room Level -- Detect and Act
+
+The atomic unit. Sensors measure temperature, occupancy, power draw, and
+lighting. The system identifies concrete waste patterns and acts automatically:
+
+- *Open window + heating on* -- temperature dropping while radiator runs.
+  Action: lower heating setpoint until window closes.
+- *Empty room + lights/heating on* -- occupancy reads zero for 30+ min.
+  Action: turn off lights, reduce heating to standby.
+- *Appliances on standby overnight* -- power draw with nobody present.
+  Action: cut power to smart plugs on a schedule.
+- *Over-heating* -- room at 24C when setpoint is 21C (stuck valve, sun
+  exposure). Action: flag anomaly, reduce heating.
+- *Ventilation at full in empty space* -- HVAC working with no occupants.
+  Action: reduce to minimum airflow.
+
+Each waste pattern produces a metric: estimated kWh wasted, duration, cause.
+These are the building blocks for everything above.
+
+*** Device Mesh -- Local Communication Between Sensors
+
+IoT devices in proximity form a mesh network and talk directly to each other.
+Instead of routing everything through a central server, neighboring devices
+share state and react based on a local rule engine:
+
+- *Heat propagation* -- a temperature sensor in room 301 detects a spike. The
+  sensor in adjacent room 302 notices and preemptively lowers its own heating
+  before the heat reaches it, avoiding overshoot.
+- *Occupancy ripple* -- someone leaves room 301 and the hallway motion sensor
+  picks them up. The devices in 301 know to start winding down, while the
+  common room devices prepare for possible arrival.
+- *Window-open chain* -- a temperature drop detected near an exterior wall
+  propagates to neighboring thermostats: "don't compensate by cranking up
+  heat, the cause is an open window nearby."
+
+The rules are simple and local: if your neighbor reports X, do Y. This keeps
+latency low (devices react in seconds, not waiting for a round-trip to a
+server), works even if the network connection drops, and scales naturally --
+adding a new device just means it joins the mesh and starts talking to its
+neighbors. The central system still collects the data for aggregation and
+visualization, but the *actions* happen at the edge.
+
+*** Floor Level -- Aggregate, Compare, Engage
+
+Composes room metrics into a floor-wide view. This is where data becomes
+visible to residents:
+
+- *Rank rooms by waste* -- identifies the biggest improvement areas on the
+  floor.
+- *Floor-wide patterns* -- "south-facing rooms consistently overheat in the
+  afternoon" reveals structural vs. behavioral issues.
+- *Visualization for residents* -- ambient display in common areas shows the
+  floor's energy state without singling anyone out.
+- *Nudges* -- actionable and specific: "Common kitchen window open for 20 min
+  while heating runs -- closing it saves ~2 kWh/hour."
+- *Floor vs. floor comparison* -- gamification on reduction percentage from
+  each floor's own baseline, keeping it fair.
+
+*** Building Level -- Prioritize, Operate, Report
+
+Composes floor metrics into a building-wide operator view:
+
+- *Rank floors by waste* -- driftspersonell see at a glance which floor needs
+  attention and why.
+- *Building-wide patterns* -- "west wing uses 30% more heating than east wing"
+  points to insulation or systematic valve problems.
+- *Prioritized action list* -- sorted by impact. "Fixing the stuck valve on
+  floor 2 saves more than all behavioral nudges on floor 4 combined."
+- *Cumulative savings tracking* -- total kWh saved, cost avoided, CO2 reduced.
+- *Operator dashboard* -- one-click actions to override settings, flag
+  maintenance, or adjust building-wide schedules.
+
+*** How This Addresses the Task
+
+| Task requirement                        | How the system solves it                                    |
+|-----------------------------------------+-------------------------------------------------------------|
+| Show where energy is wasted             | Room-level metrics identify concrete waste (open windows,   |
+|                                         | empty rooms with heating on) -- aggregated up per level     |
+| Suggest concrete actions                | Each waste pattern has a specific fix attached              |
+| Automatically adjust settings           | Room-level automation acts without human intervention       |
+| Not feel surveillance-like              | Individual room data only used for automation, never shown  |
+|                                         | publicly. Residents see floor-level aggregates only         |
+| Not feel annoying or hard to understand | Nudges are specific and infrequent. Visualization is        |
+|                                         | ambient. Metrics use tangible equivalents                   |
+| Engage users                            | Floor-level gamification for residents. Operator dashboard  |
+|                                         | for driftspersonell                                         |
+| Use sensors and IoT data                | Temperature, occupancy, power, lighting sensors at room     |
+|                                         | level feed everything                                       |
 * Tasks
 ** TODO Set up project skeleton
 ** TODO Define the core idea
