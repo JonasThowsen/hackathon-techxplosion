@@ -5,27 +5,77 @@ from dataclasses import dataclass
 @dataclass
 class Metrics:
     temperature: float
-    occupancy: float  # 0.0-1.0 percentage
+    occupancy: bool
     co2: float
     power: float
 
 
+# ---------------------------------------------------------------------------
+# Waste pattern variants
+# ---------------------------------------------------------------------------
+
+
 @dataclass
-class WastePattern:
-    pattern_id: str
-    description: str
+class EmptyRoomHeating:
+    """Heating running while the room is unoccupied."""
+
+    room_name: str
     estimated_kwh_wasted: float
     duration_minutes: float
-    cause: str
-    suggested_action: str
 
 
 @dataclass
-class Action:
-    action_id: str
-    description: str
+class OverHeating:
+    """Temperature exceeds the comfort threshold."""
+
+    room_name: str
+    estimated_kwh_wasted: float
+    duration_minutes: float
+
+
+@dataclass
+class AppliancesStandby:
+    """Appliances drawing standby power in an empty room."""
+
+    room_name: str
+    estimated_kwh_wasted: float
+    duration_minutes: float
+
+
+type WastePattern = EmptyRoomHeating | OverHeating | AppliancesStandby
+
+
+def waste_pattern_id(pattern: WastePattern) -> str:
+    """Stable string identifier for serialisation / API responses."""
+    match pattern:
+        case EmptyRoomHeating():
+            return "empty_room_heating_on"
+        case OverHeating():
+            return "over_heating"
+        case AppliancesStandby():
+            return "appliances_standby"
+
+
+# ---------------------------------------------------------------------------
+# Action variants
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ReduceHeating:
+    """Command to lower the heating setpoint on a device."""
+
     target_device: str
-    action_type: str  # "reduce_heating", "cut_power", "reduce_ventilation", etc.
+
+
+@dataclass
+class CutPower:
+    """Command to cut standby power on a device."""
+
+    target_device: str
+
+
+type Action = ReduceHeating | CutPower
 
 
 class EnergyZone(ABC):

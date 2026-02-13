@@ -6,7 +6,7 @@ Provides room adjacency detection, heat flow calculation, and root cause analysi
 
 from dataclasses import dataclass
 
-from energy_zone import Metrics, WastePattern
+from energy_zone import Metrics, OverHeating, WastePattern
 from models import Room
 
 # Two vertices are "the same" if within this distance (metres).
@@ -182,7 +182,7 @@ def analyze_root_causes(
     for room_id, metrics in room_metrics.items():
         patterns = waste_patterns.get(room_id, [])
         neighbours = adjacency.get(room_id, [])
-        pattern_ids = {p.pattern_id for p in patterns}
+        has_overheating = any(isinstance(p, OverHeating) for p in patterns)
 
         # Open window: temp below average while power is high
         if metrics.temperature < avg_temp - 2.0 and metrics.power > 150.0:
@@ -220,9 +220,9 @@ def analyze_root_causes(
             )
 
         # Building-level insulation issue: same waste in adjacent rooms
-        if "over_heating" in pattern_ids:
+        if has_overheating:
             affected_neighbours = [
-                n for n in neighbours if any(p.pattern_id == "over_heating" for p in waste_patterns.get(n, []))
+                n for n in neighbours if any(isinstance(p, OverHeating) for p in waste_patterns.get(n, []))
             ]
             if len(affected_neighbours) >= 2:
                 causes.append(

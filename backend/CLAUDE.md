@@ -97,3 +97,42 @@ This backend exposes a FastAPI service. A separate React frontend consumes it. T
 - Keep type annotations on everything -- basedpyright strict will enforce this.
 - No classes where a function will do. Only use classes for the EnergyZone hierarchy and data types.
 - Prefer composition over inheritance beyond the single ABC layer.
+
+### Strict variant typing -- no loose strings
+
+Never use `str` to represent a value from a known finite set. Instead, model variants as dataclasses and combine them with a `type` alias union. This enables exhaustive `match` statements and catches invalid variants at type-check time.
+
+```python
+# BAD -- action_type is a stringly-typed enum
+@dataclass
+class Action:
+    action_type: str  # "reduce_heating", "cut_power", ...
+
+# GOOD -- each variant is its own dataclass, union type enables match
+@dataclass
+class ReduceHeating:
+    target_device: str
+    target_temp: float
+
+@dataclass
+class CutPower:
+    target_device: str
+
+type Action = ReduceHeating | CutPower
+```
+
+Usage with exhaustive pattern matching:
+
+```python
+match action:
+    case ReduceHeating(target_device=dev, target_temp=temp):
+        ...
+    case CutPower(target_device=dev):
+        ...
+```
+
+Adding a new variant to the union forces every `match` to handle it -- the type checker catches missing cases. This applies to actions, waste patterns, sensor events, or any other domain concept with a fixed set of possibilities.
+
+## Privacy
+
+- Occupancy must be `bool` (occupied / not occupied), never a float or percentage. The system detects energy waste, it does not track or surveil people. No data that could reveal individual presence patterns beyond a binary room-level signal.

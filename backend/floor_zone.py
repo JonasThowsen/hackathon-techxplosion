@@ -12,13 +12,13 @@ class FloorZone(EnergyZone):
 
     def collect_metrics(self) -> Metrics:
         if not self.rooms:
-            return Metrics(temperature=0.0, occupancy=0.0, co2=0.0, power=0.0)
+            return Metrics(temperature=0.0, occupancy=False, co2=0.0, power=0.0)
 
         room_metrics = [r.collect_metrics() for r in self.rooms]
         n = len(room_metrics)
         return Metrics(
             temperature=sum(m.temperature for m in room_metrics) / n,
-            occupancy=sum(m.occupancy for m in room_metrics) / n,
+            occupancy=any(m.occupancy for m in room_metrics),
             co2=sum(m.co2 for m in room_metrics) / n,
             power=sum(m.power for m in room_metrics),
         )

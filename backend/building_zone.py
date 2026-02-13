@@ -1,5 +1,5 @@
 from analysis import calculate_heat_flows, find_adjacent_rooms, net_heat_flow_by_room
-from energy_zone import Action, EnergyZone, Metrics, WastePattern
+from energy_zone import Action, EnergyZone, Metrics, WastePattern, waste_pattern_id
 from floor_zone import FloorZone
 from models import BuildingLayout, MetricsUpdate, Room, RoomMetrics
 
@@ -13,13 +13,13 @@ class BuildingZone(EnergyZone):
 
     def collect_metrics(self) -> Metrics:
         if not self.floors:
-            return Metrics(temperature=0.0, occupancy=0.0, co2=0.0, power=0.0)
+            return Metrics(temperature=0.0, occupancy=False, co2=0.0, power=0.0)
 
         floor_metrics = [f.collect_metrics() for f in self.floors]
         n = len(floor_metrics)
         return Metrics(
             temperature=sum(m.temperature for m in floor_metrics) / n,
-            occupancy=sum(m.occupancy for m in floor_metrics) / n,
+            occupancy=any(m.occupancy for m in floor_metrics),
             co2=sum(m.co2 for m in floor_metrics) / n,
             power=sum(m.power for m in floor_metrics),
         )
@@ -52,10 +52,10 @@ class BuildingZone(EnergyZone):
                 all_rooms.append(room_zone.room)
                 rooms[room_zone.room.id] = RoomMetrics(
                     temperature=metrics.temperature,
-                    occupancy=metrics.occupancy >= 0.5,
+                    occupancy=metrics.occupancy,
                     co2=metrics.co2,
                     power=metrics.power,
-                    waste_patterns=[p.pattern_id for p in waste],
+                    waste_patterns=[waste_pattern_id(p) for p in waste],
                 )
 
         # Compute heat flows and apply net flow to each room
