@@ -1,0 +1,358 @@
+.dashboard {
+  min-height: 100vh;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--bg-card);
+  border-bottom: 1px solid #333;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-left h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.building-name {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #44ff88;
+  font-size: 0.8rem;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: #44ff88;
+  border-radius: 50%;
+}
+
+.tick {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.dashboard-content {
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border: 1px solid #2a2a3e;
+}
+
+.card-icon {
+  font-size: 1.25rem;
+  opacity: 0.8;
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.card-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.card-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.card-sub {
+  font-size: 0.7rem;
+  color: #555;
+  margin-top: 0.15rem;
+}
+
+.energy-card .card-value { color: #ffc107; }
+.waste-card .card-value { color: #ff6b6b; }
+.temp-card .card-value { color: #4ecdc4; }
+.rooms-card .card-value { color: #a78bfa; }
+.co2-card .card-value { color: #34d399; }
+
+/* Info Row */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* Alerts Panel */
+.alerts-panel {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 3px solid #ff6b6b;
+}
+
+.alerts-panel h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(255, 107, 107, 0.08);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.alert-item.critical {
+  background: rgba(255, 50, 50, 0.12);
+}
+
+.alert-item .alert-room {
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.alert-item .alert-message {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.alert-item .alert-waste {
+  font-family: monospace;
+  color: #ff6b6b;
+  font-size: 0.75rem;
+}
+
+/* Event Feed */
+.event-feed {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+  border-left: 3px solid #4a9eff;
+}
+
+.event-feed h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.event-empty {
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+}
+
+.event-item.waste { background: rgba(255, 107, 107, 0.08); }
+.event-item.resolved { background: rgba(52, 211, 153, 0.08); }
+.event-item.info { background: rgba(74, 158, 255, 0.05); }
+
+.event-time {
+  color: #555;
+  font-family: monospace;
+  font-size: 0.65rem;
+}
+
+.event-icon {
+  font-size: 0.75rem;
+}
+
+.event-message {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+/* Energy Flow */
+.energy-flow {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.energy-flow h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.flow-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.flow-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flow-room {
+  width: 90px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-bar-container {
+  flex: 1;
+  height: 14px;
+  background: #1a1a2e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.flow-bar {
+  height: 100%;
+  background: #4a9eff;
+  border-radius: 2px;
+}
+
+.flow-bar.waste {
+  background: #ff6b6b;
+}
+
+.flow-value {
+  width: 50px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+/* Floor Plan Section */
+.floorplan-section {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.floorplan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.floorplan-header h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.floorplan-controls {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.floorplan-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .header-left, .header-right {
+    justify-content: center;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .floorplan-controls {
+    flex-direction: column;
+  }
+
+  .info-row {
+    grid-template-columns: 1fr;
+  }
+}

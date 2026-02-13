@@ -49,7 +49,7 @@ export interface MetricsUpdate {
 
 // UI state types
 
-export type MetricType = "temperature" | "occupancy" | "co2" | "power";
+export type MetricType = "temperature" | "co2" | "power";
 
 export interface MetricConfig {
   label: string;
@@ -60,7 +60,6 @@ export interface MetricConfig {
 
 export const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   temperature: { label: "Temperature", unit: "°C", min: 15, max: 30 },
-  occupancy: { label: "Occupancy", unit: "%", min: 0, max: 1 },
   co2: { label: "CO₂", unit: "ppm", min: 300, max: 1000 },
   power: { label: "Power", unit: "W", min: 0, max: 500 },
 };

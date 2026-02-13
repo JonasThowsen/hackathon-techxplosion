@@ -139,10 +139,7 @@ export function FloorGrid({
       // Draw metric value
       if (roomMetrics) {
         const value = roomMetrics[selectedMetric];
-        const displayValue =
-          selectedMetric === "occupancy"
-            ? `${Math.round(value * 100)}%`
-            : `${value.toFixed(1)}${config.unit}`;
+        const displayValue = `${value.toFixed(1)}${config.unit}`;
         ctx.font = "bold 14px sans-serif";
         ctx.fillText(displayValue, labelX, labelY + 8);
 

@@ -469,13 +469,13 @@ Hardcode a sample building with 3 floors.
 ** TODO Backend: WebSocket metrics stream
 =WS /ws= pushing MetricsUpdate every tick.
 Simulated sensor data that changes over time.
-** TODO Frontend: Canvas floor renderer
+** DONE Frontend: Canvas floor renderer
 Canvas component that draws room polygons colored by selected metric.
 ** TODO Frontend: Connect to backend
 Fetch =GET /building= on load, connect =WS /ws=, merge metrics, re-render each tick.
 ** TODO Backend: Waste pattern detection
 Room-level waste detection, included in MetricsUpdate.
-** TODO Frontend: Floor selector + metric picker + hover tooltip
+** DONE Frontend: Floor selector + metric picker + hover tooltip
 ** TODO Integration test
 Run both together, verify live data end-to-end.
 ** TODO Polish + demo prep

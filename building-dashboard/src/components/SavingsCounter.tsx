@@ -1,0 +1,80 @@
+import { useEffect, useRef, useState } from "react";
+import type { MetricsUpdate, RoomMetrics } from "../types";
+
+interface SavingsCounterProps {
+  metrics: MetricsUpdate;
+  intervalMs?: number;
+}
+
+const ELECTRICITY_PRICE_NOK = 1.5; // NOK per kWh
+const CO2_FACTOR = 0.02; // kg CO2 per kWh
+
+function calculateWasteWatts(rooms: Record<string, RoomMetrics>): number {
+  let waste = 0;
+  for (const data of Object.values(rooms)) {
+    for (const pattern of data.waste_patterns) {
+      switch (pattern) {
+        case "empty_room_heating_on":
+          waste += data.power * 0.8;
+          break;
+        case "open_window_heating":
+          waste += data.power * 0.9;
+          break;
+        case "over_heating":
+          waste += data.power * 0.3;
+          break;
+        case "appliances_standby":
+          waste += data.power * 0.5;
+          break;
+      }
+    }
+  }
+  return waste;
+}
+
+export function SavingsCounter({ metrics, intervalMs = 2000 }: SavingsCounterProps) {
+  const [savedKwh, setSavedKwh] = useState(0);
+  const wasteRate = useRef(0);
+  const lastUpdate = useRef(Date.now());
+
+  // Update waste rate when metrics change
+  useEffect(() => {
+    wasteRate.current = calculateWasteWatts(metrics.rooms);
+  }, [metrics]);
+
+  // Accumulate savings over time (simulating that we're preventing waste)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = (now - lastUpdate.current) / 1000 / 3600; // hours
+      const kwhSaved = (wasteRate.current / 1000) * elapsed * 0.5; // assume 50% mitigation
+      setSavedKwh((prev) => prev + kwhSaved);
+      lastUpdate.current = now;
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [intervalMs]);
+
+  const savedNok = savedKwh * ELECTRICITY_PRICE_NOK;
+  const savedCo2 = savedKwh * CO2_FACTOR * 1000; // grams
+
+  return (
+    <div className="savings-counter">
+      <h3>Session Savings</h3>
+      <div className="savings-grid">
+        <div className="saving-item">
+          <span className="saving-value">{savedKwh.toFixed(3)}</span>
+          <span className="saving-unit">kWh</span>
+        </div>
+        <div className="saving-item">
+          <span className="saving-value">{savedNok.toFixed(2)}</span>
+          <span className="saving-unit">NOK</span>
+        </div>
+        <div className="saving-item">
+          <span className="saving-value">{savedCo2.toFixed(1)}</span>
+          <span className="saving-unit">g CO₂</span>
+        </div>
+      </div>
+    </div>
+  );
+}
