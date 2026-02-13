@@ -5,8 +5,73 @@
 
 * Idea
 ** Problem
+Public buildings and student housing waste energy on heating, lighting, and ventilation for empty rooms. Decisions are made without insight into actual usage patterns. Sensors can collect real-time data (temperature, occupancy, air quality, power consumption), but the challenge is turning this data into actionable information for users (staff, students, residents) without feeling intrusive or confusing.
+
+*Task*: Build a system that shows where energy is wasted, suggests actions, or auto-adjusts settings—while remaining user-friendly and non-invasive.
+
 ** Solution
+*FlowMetrics*
+Heatmap system showing where and how the different metrics behave over time,
+visualizing and emphasise where and how the metrics are worse. Maybe create a
+suggestion system.
+
+Automatically adjust metrics;
+*** Example:
+Someone left a window open in a room
+*Symptoms:*
+- Heating requires more power compared to usual (outside, historical, others)
+- Air quality rises naturally (hopefully)
+*Action:*
+- Reduce power to heating, start listening to temperature. If starting to rise
+  again -> normal power (window closed)
+- Reduce ventilation if air quality seems good, window takes care of the rest.
+
+*** How it looks:
+
+**** Dashboard:
+
+
+**** Map:
+
+A heatmap inspired visualization for the different metrics. Used to analyze
+where losses happen, and how the whole system (building) works in unison
+
+Floor 3:
+|---+-----+-----|
+|   |     | 18C |
+|---+-----+-----|
+|   | 18C |     |
+|---+-----+-----|
+|   | 18C |     |
+|---+-----+-----|
+
+Floor 2:
+|---+---+---|
+|   |   |   |
+|---+---+---|
+|   |   |   |
+|---+---+---|
+|   |   |   |
+|---+---+---|
+
+Floor 1:
+|---+---+---|
+|   |   |   |
+|---+---+---|
+|   |   |   |
+|---+---+---|
+|   |   |   |
+|---+---+---|
+
 ** Why it matters
+Increases:
+- Observability
+- Prioritization
+
+Decreases:
+- Cost
+- Environmental stuff
+
 
 * Tech Stack
 - Python 3.14
