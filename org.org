@@ -143,7 +143,9 @@ Decreases:
 All spatial values are in *meters*. Origin =(0, 0)= is the top-left corner
 of the building footprint. X increases rightward, Y increases downward.
 
-Rooms are axis-aligned rectangles defined by =x=, =y=, =w=, =h= in meters.
+Rooms are closed polygons defined by a list of =[x, y]= coordinate pairs in
+meters. The last point connects back to the first implicitly. A simple
+rectangle is just four points: =[[0,0], [10,0], [10,9], [0,9]]=.
 
 The frontend scales meter coordinates to canvas pixels using:
 =pixel = meter * (canvas_size / building_size_m)=
@@ -163,17 +165,37 @@ Fetched once on page load. Defines the physical structure.
       "floor_index": 0,
       "label": "Floor 1",
       "rooms": [
-        { "id": "r-101", "name": "Lobby",    "x": 0.0,  "y": 0.0, "w": 10.0, "h": 9.0 },
-        { "id": "r-102", "name": "Room 102", "x": 10.0, "y": 0.0, "w": 10.0, "h": 9.0 },
-        { "id": "r-103", "name": "Kitchen",  "x": 0.0,  "y": 9.0, "w": 15.0, "h": 9.0 }
+        {
+          "id": "r-101",
+          "name": "Lobby",
+          "polygon": [[0,0], [10,0], [10,9], [0,9]]
+        },
+        {
+          "id": "r-102",
+          "name": "Room 102",
+          "polygon": [[10,0], [20,0], [20,9], [10,9]]
+        },
+        {
+          "id": "r-103",
+          "name": "Kitchen",
+          "polygon": [[0,9], [15,9], [15,18], [0,18]]
+        }
       ]
     },
     {
       "floor_index": 1,
       "label": "Floor 2",
       "rooms": [
-        { "id": "r-201", "name": "Room 201", "x": 0.0,  "y": 0.0, "w": 15.0, "h": 9.0 },
-        { "id": "r-202", "name": "Room 202", "x": 15.0, "y": 0.0, "w": 15.0, "h": 9.0 }
+        {
+          "id": "r-201",
+          "name": "Room 201",
+          "polygon": [[0,0], [15,0], [15,9], [0,9]]
+        },
+        {
+          "id": "r-202",
+          "name": "Room 202",
+          "polygon": [[15,0], [30,0], [30,9], [15,9]]
+        }
       ]
     }
   ]
@@ -209,10 +231,10 @@ Frontend merges this into the stored geometry to color the rooms.
 
 *** Contract: Summary
 
-| What              | How             | Payload                        | When              |
-|-------------------+-----------------+--------------------------------+-------------------|
-| Building geometry | =GET /building= | rooms as =(x,y,w,h)= in meters | once on page load |
-| Live metrics      | =WS /ws=        | room id → metric values       | every tick        |
+| What              | How             | Payload                             | When              |
+|-------------------+-----------------+-------------------------------------+-------------------|
+| Building geometry | =GET /building= | rooms as polygons =[x,y]= in meters | once on page load |
+| Live metrics      | =WS /ws=        | room id → metric values            | every tick        |
 
 - Geometry and metrics are *separate*. The backend can change room layouts
   without touching the metrics stream, and vice versa.
