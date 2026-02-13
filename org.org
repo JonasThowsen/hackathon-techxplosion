@@ -472,11 +472,11 @@ Simulated sensor data that changes over time.
 ** TODO Backend: Core sensor & EnergyZone system
 - [X] Create sensor types (SensorKind enum, Sensor dataclass, SensorReading)
 - [X] Create EnergyZone ABC with Metrics, WastePattern, Action types
-- [ ] Implement RoomZone (collect_metrics, identify_waste, act)
-- [ ] Implement FloorZone (aggregate room metrics upward)
-- [ ] Implement BuildingZone (aggregate floor metrics upward)
-- [ ] Create simulation engine (realistic sensor data with time-based drift)
-- [ ] Inject waste scenarios for demo (empty room heating, open window, standby appliances)
+- [X] Implement RoomZone (collect_metrics, identify_waste, act)
+- [X] Implement FloorZone (aggregate room metrics upward)
+- [X] Implement BuildingZone (aggregate floor metrics upward)
+- [X] Create simulation engine (realistic sensor data with time-based drift)
+- [X] Inject waste scenarios for demo (empty room heating, open window, standby appliances)
 - [ ] Wire WebSocket /ws endpoint with live MetricsUpdate stream
 - [ ] Integration test: curl /building + wscat /ws shows live data flowing
 ** DONE Frontend: Canvas floor renderer
@@ -523,8 +523,8 @@ Run both together, verify live data end-to-end.
 - [ ] Add CORS config so frontend can connect from different port
 - [ ] Integration check: both running, data flows end-to-end
 - [X] Create sensor types and EnergyZone ABC
-- [ ] Implement Room/Floor/Building EnergyZone hierarchy
-- [ ] Build simulation engine with waste scenarios
+- [X] Implement Room/Floor/Building EnergyZone hierarchy
+- [X] Build simulation engine with waste scenarios
 - [ ] Wire WS /ws endpoint with live metrics stream
 
 * Demo Notes
