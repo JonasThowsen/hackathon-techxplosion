@@ -78,6 +78,8 @@ Decreases:
   - [[https://fastapi.tiangolo.com/][FastAPI]]
 - Web
   - Deck.gl [[https://github.com/visgl/deck.gl/tree/9.2-release/examples/website/screen-grid][Grid]]
+  - Vite
+  - React
 - Tooling: uv, ruff, basedpyright
 
 
