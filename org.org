@@ -75,11 +75,29 @@ Decreases:
 
 * Tech Stack
 - Python 3.14
+  - [[https://fastapi.tiangolo.com/][FastAPI]]
+- Web
+  - Deck.gl [[https://github.com/visgl/deck.gl/tree/9.2-release/examples/website/screen-grid][Grid]]
 - Tooling: uv, ruff, basedpyright
 
+
+
 * Architecture
+** Feature Spec
+- [ ] Plantegning - Med etasjer
+- [ ] Overvåking av metrics, og basere det på lokasjon
+- [ ] Kunne plassere IoT og andre ting, og dette skal jobbe automatisk
+- [ ] Hvor lekker "metrics"? Altså, lekker ett rom varme ut av bygget/inn til et
+  annet rom?
+- [ ] Bruke soldata (vinkel, styrke, etc.. ) i kalkuleringer [[https://www.sunearthtools.com/dp/tools/pos_sun.php?lang=en][SunEarthTools]]
+
 ** Overview
+
 ** Key Components
+**** Entities:
+- IoT Sensor :: Heat | Air quality | Occupancy
+- Metric-improver-devices :: Power Consumption && ( Heating effect | Air quality effect and
+  spreading of air )
 
 * Tasks
 ** TODO Set up project skeleton
