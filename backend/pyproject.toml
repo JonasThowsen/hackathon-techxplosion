@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi>=0.129.0",
+    "uvicorn>=0.40.0",
+    "websockets>=16.0",
+]
 
 [dependency-groups]
 dev = [
