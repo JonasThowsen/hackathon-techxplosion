@@ -1,8 +1,16 @@
-from fastapi import FastAPI
+import asyncio
+import dataclasses
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from building_zone import BuildingZone
+from floor_zone import FloorZone
 from models import BuildingLayout
+from room_zone import RoomZone
 from sample_building import SAMPLE_BUILDING
+from sensors import Sensor
+from simulation import place_sensors, simulate_tick
 
 app = FastAPI(title="Energy Waste Detection API")
 
@@ -15,6 +23,37 @@ app.add_middleware(
 )
 
 
+def _build_zone_hierarchy(
+    layout: BuildingLayout,
+    sbr: dict[str, list[Sensor]],
+) -> BuildingZone:
+    floor_zones: list[FloorZone] = []
+    for floor in layout.floors:
+        room_zones = [RoomZone(room, sbr[room.id]) for room in floor.rooms]
+        floor_zones.append(FloorZone(floor, room_zones))
+    return BuildingZone(layout, floor_zones)
+
+
+# --- module-level state, initialised at import time ---
+sensors_by_room: dict[str, list[Sensor]] = place_sensors(SAMPLE_BUILDING)
+building: BuildingZone = _build_zone_hierarchy(SAMPLE_BUILDING, sensors_by_room)
+
+
 @app.get("/building")
 def get_building() -> BuildingLayout:
     return SAMPLE_BUILDING
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
+    await websocket.accept()
+    tick = 0
+    try:
+        while True:
+            simulate_tick(sensors_by_room, tick)
+            update = building.to_metrics_update(tick)
+            await websocket.send_json(dataclasses.asdict(update))
+            tick += 1
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        pass
