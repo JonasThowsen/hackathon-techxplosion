@@ -343,24 +343,59 @@ Composes floor metrics into a building-wide operator view:
 | Use sensors and IoT data                | Temperature, occupancy, power, lighting sensors at room     |
 |                                         | level feed everything                                       |
 * Tasks
-** TODO Set up project skeleton
-- [ ] Setup frontend
-- [ ] Setup backend
-** TODO Define the core idea
-** TODO Build MVP
-** TODO Prepare demo
+** DONE Set up project skeleton
+- [X] Setup frontend (Vite + React + TS)
+- [X] Setup backend (Python + uv)
+- [X] Define contract (org.org DFD + JSON schemas)
+** DONE Define the core idea
+** TODO Backend: Serve building layout
+=GET /building= returning BuildingLayout JSON (polygons in meters).
+Hardcode a sample building with 3 floors.
+** TODO Backend: WebSocket metrics stream
+=WS /ws= pushing MetricsUpdate every tick.
+Simulated sensor data that changes over time.
+** TODO Frontend: Canvas floor renderer
+Canvas component that draws room polygons colored by selected metric.
+** TODO Frontend: Connect to backend
+Fetch =GET /building= on load, connect =WS /ws=, merge metrics, re-render each tick.
+** TODO Backend: Waste pattern detection
+Room-level waste detection, included in MetricsUpdate.
+** TODO Frontend: Floor selector + metric picker + hover tooltip
+** TODO Integration test
+Run both together, verify live data end-to-end.
+** TODO Polish + demo prep
 
 * Team
-| Name  | Focus |
-|-------+-------|
-| Dany  |       |
-| Jonas |       |
+| Name  | Focus    |
+|-------+----------|
+| Dany  | Frontend |
+| Jonas | Backend  |
 
 * Timeline
-| Time     | Dany | Jonas |
-|----------+------+-------|
-|          |      |       |
-|          |      |       |
+** Friday evening
+*** Dany (Frontend)
+- [ ] Create TypeScript types matching the contract (BuildingLayout, MetricsUpdate)
+- [ ] Build FloorGrid canvas component that takes a floor + metrics and draws polygons
+- [ ] Hardcode mock BuildingLayout in frontend to test rendering without backend
+- [ ] Color rooms with a basic heatmap color function (blue cold → red hot)
+- [ ] Verify rooms draw correctly, walls visible, no overlaps
+*** Jonas (Backend)
+- [ ] Add FastAPI + uvicorn + websockets to dependencies
+- [ ] Create Pydantic models matching the contract (BuildingLayout, MetricsUpdate)
+- [ ] Hardcode a sample building (3 floors, 4-6 rooms each, polygons in meters)
+- [ ] Implement =GET /building= endpoint returning the sample building
+- [ ] Test with curl / browser that the JSON looks right
+** Saturday morning
+*** Dany (Frontend)
+- [ ] Replace mock data with =fetch("/building")= call on mount
+- [ ] Connect to =WS /ws=, parse MetricsUpdate messages
+- [ ] Merge incoming metrics into stored geometry, re-render canvas on each tick
+- [ ] Add floor selector (tabs or buttons)
+*** Jonas (Backend)
+- [ ] Implement =WS /ws= endpoint, push MetricsUpdate every 2-3 seconds
+- [ ] Generate simulated sensor data that drifts over time (not static)
+- [ ] Add CORS config so frontend can connect from different port
+- [ ] Integration check: both running, data flows end-to-end
 
 * Demo Notes
 ** Pitch (30-60 sec)
