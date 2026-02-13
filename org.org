@@ -342,6 +342,121 @@ Composes floor metrics into a building-wide operator view:
 |                                         | for driftspersonell                                         |
 | Use sensors and IoT data                | Temperature, occupancy, power, lighting sensors at room     |
 |                                         | level feed everything                                       |
+* Advanced Analysis
+** Thermal Physics Modeling
+*** Heat Transfer Network
+- Model the building as a thermal graph: rooms are nodes, walls/windows are edges with conductance values
+- Calculate heat flow rate: =Q = U × A × ΔT= (U-value × area × temperature difference)
+- Identify "heat sinks" (rooms bleeding heat outside) vs "heat bridges" (rooms gaining unwanted heat from neighbors)
+- Visualize heat flow arrows on the floor plan showing direction and magnitude
+
+*** Thermal Mass Inference
+- Track how quickly each room responds to heating/cooling
+- Rooms with low thermal mass (high response rate) need different control strategies than high-mass rooms
+- Detect anomalies: "Room 204 is heating 3x faster than similar rooms → possible sensor issue or open door"
+
+*** Building Envelope Analysis
+- Using interior temps + exterior temp + known wall positions, calculate effective R-values per wall section
+- Flag degraded insulation: "North wall of Room 102 losing 40% more heat than expected"
+
+** Solar Gain Integration
+*** Predictive Solar Loading
+- Combine sun azimuth/elevation + window orientation + window area + shading
+- Calculate real-time solar gain in Watts per room
+- Predict: "Room 106 will receive 2kW solar gain in 30 minutes → preemptively reduce heating"
+
+*** Shadow Mapping
+- Model which rooms are shaded by building geometry at different times
+- Explain temperature differences: "Room 103 is 3°C warmer because it has direct sun exposure while 104 is shaded"
+
+*** Seasonal Patterns
+- Track solar contribution over months
+- "South-facing rooms need 30% less heating in spring due to solar gain"
+
+** Anomaly Detection & Diagnostics
+*** Baseline Learning
+- Build per-room behavioral profiles: typical temp range, occupancy patterns, power draw
+- Statistical anomaly detection (z-score, isolation forest)
+- "Room 108 power consumption is 2.5σ above normal for this time/occupancy"
+
+*** Root Cause Analysis
+When waste is detected, automatically correlate with possible causes:
+- Temperature drop + high heating → window open (check if CO2 also dropping)
+- Temperature rise + no heating + afternoon → solar gain
+- High power + zero occupancy + night → appliance left on
+
+*** Sensor Health Monitoring
+- Cross-validate sensors: if room temp says 25°C but heating is max and neighbors are 18°C → sensor fault
+- Detect stuck sensors (flatline), drift, or impossible readings
+
+** Occupancy Intelligence
+*** Pattern Learning
+- Learn weekly schedules per room (lectures, office hours, common room usage)
+- Predict occupancy 1-24 hours ahead with confidence intervals
+
+*** Pre-conditioning
+- "Room 201 has a class at 08:00 on Mondays → start heating at 07:30"
+- Calculate optimal pre-heat time based on thermal mass and current temp
+
+*** Occupancy Flow Analysis
+- Track movement: when someone leaves room A, predict likely destination (corridor → common room → exit)
+- Optimize corridor/stairwell heating based on traffic patterns
+
+** Economic & Environmental Impact
+*** Real-Time Cost
+- Integrate spot electricity prices (Nord Pool for Norway)
+- Show waste in NOK/hour, not just kWh
+- "Current waste across building: 47 NOK/hour"
+
+*** Carbon Accounting
+- Convert kWh to kg CO2 using grid emission factor (varies by country, time of day)
+- Norway daytime ≈ 20g CO2/kWh (hydro), Germany evening ≈ 400g CO2/kWh (coal peaking)
+
+*** ROI Calculator
+For each suggested fix, estimate:
+- Implementation cost
+- Annual savings
+- Payback period
+- 10-year NPV
+- Example: "Fixing stuck valve in Room 203: Cost 2000 NOK, saves 1200 NOK/year, payback 1.7 years"
+
+** Comparative & Trend Analysis
+*** Degree-Day Normalization
+- Normalize energy use by heating degree days (HDD) to compare across seasons
+- "February used 20% more energy than January, but HDD-normalized it's actually 5% better"
+
+*** Peer Benchmarking
+- Group similar rooms (same size, orientation, floor)
+- Rank within peer group: "Room 204 uses 35% more energy than similar rooms"
+- Investigate outliers
+
+*** Trend Detection
+- Week-over-week, month-over-month comparisons
+- Detect gradual degradation: "Room 105 heating efficiency declining 2% per month → schedule maintenance"
+
+** Comfort Optimization
+*** PMV/PPD Comfort Model
+- Calculate Predicted Mean Vote (thermal comfort index) from temp, humidity, air velocity, clothing, activity
+- Optimize for comfort, not just temperature
+- "Room 201 is 21°C but feels cold due to draft → address air leakage instead of raising temp"
+
+*** CO2-Based Ventilation
+- Instead of fixed ventilation rates, modulate based on actual CO2 levels
+- "Room 108 CO2 at 600ppm with 2 people → reduce ventilation 40% safely"
+
+*** Multi-Objective Optimization
+- Balance comfort, energy cost, and carbon
+- Pareto frontier: show tradeoffs between "cheap but less comfortable" vs "comfortable but expensive"
+
+** What-If Simulation
+*** Scenario Modeling
+- "What if we lowered setpoint by 1°C building-wide?" → estimate savings
+- "What if we replaced windows on the north facade?" → model impact
+
+*** Digital Twin
+- Physics-based simulation of the building
+- Test control strategies in simulation before deploying
+
 * Tasks
 ** DONE Set up project skeleton
 - [X] Setup frontend (Vite + React + TS)
