@@ -92,7 +92,6 @@ Decreases:
 - [ ] Hvor lekker "metrics"? Altså, lekker ett rom varme ut av bygget/inn til et
   annet rom?
 - [ ] Bruke soldata (vinkel, styrke, etc.. ) i kalkuleringer [[https://www.sunearthtools.com/dp/tools/pos_sun.php?lang=en][SunEarthTools]]
-
 ** Overview
 
 ** Key Components
@@ -197,15 +196,17 @@ Composes floor metrics into a building-wide operator view:
 |                                         | level feed everything                                       |
 * Tasks
 ** TODO Set up project skeleton
+- [ ] Setup frontend
+- [ ] Setup backend
 ** TODO Define the core idea
 ** TODO Build MVP
 ** TODO Prepare demo
 
 * Team
-| Name | Focus |
-|------+-------|
-|      |       |
-|      |       |
+| Name  | Focus |
+|-------+-------|
+| Dany  |       |
+| Jonas |       |
 
 * Timeline
 | Time     | Dany | Jonas |
