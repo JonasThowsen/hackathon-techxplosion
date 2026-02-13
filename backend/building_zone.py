@@ -1,6 +1,7 @@
+from analysis import calculate_heat_flows, find_adjacent_rooms, net_heat_flow_by_room
 from energy_zone import Action, EnergyZone, Metrics, WastePattern
 from floor_zone import FloorZone
-from models import BuildingLayout, MetricsUpdate, RoomMetrics
+from models import BuildingLayout, MetricsUpdate, Room, RoomMetrics
 
 
 class BuildingZone(EnergyZone):
@@ -36,11 +37,19 @@ class BuildingZone(EnergyZone):
         return actions
 
     def to_metrics_update(self, tick: int) -> MetricsUpdate:
+        # Collect per-room metrics and waste patterns
+        room_metrics_map: dict[str, Metrics] = {}
+        room_waste_map: dict[str, list[WastePattern]] = {}
         rooms: dict[str, RoomMetrics] = {}
+        all_rooms: list[Room] = []
+
         for floor_zone in self.floors:
             for room_zone in floor_zone.rooms:
                 metrics = room_zone.collect_metrics()
                 waste = room_zone.identify_waste()
+                room_metrics_map[room_zone.room.id] = metrics
+                room_waste_map[room_zone.room.id] = waste
+                all_rooms.append(room_zone.room)
                 rooms[room_zone.room.id] = RoomMetrics(
                     temperature=metrics.temperature,
                     occupancy=metrics.occupancy >= 0.5,
@@ -48,4 +57,14 @@ class BuildingZone(EnergyZone):
                     power=metrics.power,
                     waste_patterns=[p.pattern_id for p in waste],
                 )
+
+        # Compute heat flows and apply net flow to each room
+        adjacency = find_adjacent_rooms(all_rooms)
+        flows = calculate_heat_flows(room_metrics_map, adjacency, all_rooms)
+        net_flows = net_heat_flow_by_room(flows)
+
+        for room_id, net in net_flows.items():
+            if room_id in rooms:
+                rooms[room_id].heat_flow = round(net, 1)
+
         return MetricsUpdate(tick=tick, rooms=rooms)

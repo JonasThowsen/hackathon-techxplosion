@@ -31,6 +31,7 @@ class RoomMetrics:
     co2: float
     power: float
     waste_patterns: list[str] = field(default_factory=list)
+    heat_flow: float = 0.0  # net heat gain/loss in watts (positive = gaining heat)
 
 
 @dataclass
