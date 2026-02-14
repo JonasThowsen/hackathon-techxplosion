@@ -1,0 +1,144 @@
+#+title: Heat Flow Analysis
+
+* Model:
+** Governing Equation
+For node i:
+
+\begin{equation}
+C_i \frac{dT_i}{dt} = P_i + \sum_{j \in N(i)} G_{ij}(T_j - T_i)
+\end{equation}
+
+Where:
+- $C_i$ = Heat capacity (thermal mass) [J/K]
+- $P_i$ = Heat generation (HVAC power) [W]
+- $G_{ij}$ = Conductance between node i and j [W/K]
+- $N(i)$ = Neighbors of i
+
+With exterior boundary:
+\begin{equation}
+C_i \frac{dT_i}{dt} = P_i + \sum_{j \in N(i)} G_{ij}(T_j - T_i) + \sum_{k \in outside} G_{ik}(T_{out}[t] - T_i)
+\end{equation}
+
+** Discrete Form
+For numerical estimation, we discretize with time step $\Delta t$:
+
+\begin{equation}
+C_i \frac{T_i^{t+1} - T_i^t}{\Delta t} = P_i^t + \sum_{j \in N(i)} G_{ij}(T_j^t - T_i^t)
+\end{equation}
+
+Rearranging for predicted temperature change:
+\begin{equation}
+\Delta T_i^{predicted} = \frac{\Delta t}{C_i} \left( P_i^t + \sum_{j \in N(i)} G_{ij}(T_j^t - T_i^t) \right)
+\end{equation}
+
+* Parameter Estimation
+** Method: Nonlinear Least Squares
+
+We seek parameters $\theta = \{C_i, G_{ij}\}$ that minimize:
+
+\begin{equation}
+\min_\theta \sum_{t=0}^{T-1} \sum_{i} \left( \Delta T_i^{observed,t} - \Delta T_i^{predicted,t}(\theta) \right)^2
+\end{equation}
+
+** Implementation
+- Algorithm: Trust Region Reflective (scipy.optimize.least_squares)
+- Handles box constraints on parameters
+- Regularization term prevents overfitting
+
+** Known Data
+- $T_i^t$ : Temperature history per room
+- $P_i^t$ : Heating power consumption per room
+- $T_{out}^t$ : External temperature (constant or time series)
+- Adjacency: Which rooms share walls
+
+** Estimated Parameters
+- $C_i$ : Thermal mass per room [J/K]
+- $G_{ij}$ : Thermal conductance per wall [W/K]
+
+** Typical Values
+| Parameter                | Typical Range | Unit |
+|--------------------------+---------------+------|
+| $C_i$ (small room)       | 100-500 kJ/K  | J/K  |
+| $C_i$ (large room)       | 500-2000 kJ/K | J/K  |
+| $G_{ij}$ (interior wall) | 5-20          | W/K  |
+| $G_{ik}$ (exterior wall) | 2-10          | W/K  |
+
+Note: $G = U \cdot A$ where $U$ is U-value [W/(m^2 K)] and $A$ is wall area [m^2].
+
+* Usage
+#+BEGIN_SRC elisp
+(pyvenv-activate "./../../.venv")
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC sh
+echo $VIRTUAL_ENV
+which python
+#+END_SRC
+
+#+RESULTS:
+| /home/dany/Personal/hackathon-techxplosion/backend/.venv            |
+| /home/dany/Personal/hackathon-techxplosion/backend/.venv/bin/python |
+
+#+begin_src python :results output
+import sys
+print(sys.executable)
+from heat_flow_analysis import (
+    estimate_thermal_properties,
+    build_graph_from_adjacency,
+    history_from_room_history,
+    EstimationConfig,
+)
+
+# Build thermal graph from room adjacency
+graph = build_graph_from_adjacency(
+    room_ids=["room_a", "room_b", "room_c"],
+    adjacency={"room_a": ["room_b"], "room_b": ["room_a", "room_c"], "room_c": ["room_b"]},
+    exterior_rooms={"room_a", "room_c"},
+)
+
+# Convert historical data
+histories = history_from_room_history(room_histories)
+
+# Run estimation
+config = EstimationConfig(dt_seconds=180.0)
+result = estimate_thermal_properties(
+    histories=histories,
+    graph=graph,
+    external_temp=10.0,
+    config=config,
+)
+
+print(f"R-squared: {result.r_squared:.3f}")
+print(f"RMSE: {result.rmse:.4f} K")
+for room_id, C in result.thermal_mass.items():
+    print(f"{room_id}: C = {C/1000:.1f} kJ/K")
+for (a, b), G in result.conductance.items():
+    print(f"{a} <-> {b}: G = {G:.2f} W/K")
+#+end_src
+
+#+RESULTS:
+: /home/dany/Personal/hackathon-techxplosion/.venv/bin/python
+
+
+
+
+* Alternatives Considered
+** Extended Kalman Filter
+- Pros: Online estimation, handles noise explicitly
+- Cons: More complex, requires state augmentation
+
+** Bayesian Inference (e.g., PyMC)
+- Pros: Full posterior distributions, uncertainty quantification
+- Cons: Computationally expensive, overkill for point estimates
+
+** Grey-box Modeling
+- Pros: Standard in building energy modeling
+- Cons: Similar to our approach, nonlinear least squares is the workhorse
+
+** Why Nonlinear Least Squares?
+- Simple, fast, well-understood
+- scipy.optimize.least_squares handles bounds and provides diagnostics
+- Trust Region Reflective method is robust for this problem class
+- Easy to add regularization to prevent overfitting
