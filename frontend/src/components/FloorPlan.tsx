@@ -301,7 +301,7 @@ export function FloorPlan({
       // Pulse effect for waste rooms - color varies by pattern type
       if (hasWaste && roomMetrics) {
         const patterns = roomMetrics.waste_patterns ?? [];
-        const hasWindowOpen = patterns.includes("open_window_heating");
+        const hasWindowOpen = patterns.includes("rapid_heat_loss");
         const hasExcessiveVent = patterns.includes("excessive_ventilation");
 
         if (hasWindowOpen) {
@@ -372,7 +372,7 @@ export function FloorPlan({
 
           if ((roomMetrics.waste_patterns?.length ?? 0) > 0) {
             const patterns = roomMetrics.waste_patterns ?? [];
-            const hasWindowOpen = patterns.includes("open_window_heating");
+            const hasWindowOpen = patterns.includes("rapid_heat_loss");
             const hasExcessiveVent = patterns.includes("excessive_ventilation");
 
             let icon = "⚠";

@@ -110,13 +110,13 @@ function createAlert(
         message: `Heating running in empty room (${data.temperature.toFixed(1)}°C)`,
         estimatedWaste: data.power * 0.8,
       };
-    case "open_window_heating":
+    case "rapid_heat_loss":
       return {
         roomId,
         roomName,
         pattern,
         severity: "critical",
-        message: `Window open - heat loss (${data.temperature.toFixed(1)}°C)`,
+        message: `Rapid heat loss detected (${data.temperature.toFixed(1)}°C, dropping)`,
         estimatedWaste: data.power * 0.9,
       };
     case "over_heating":

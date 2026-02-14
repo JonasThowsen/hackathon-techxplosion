@@ -134,13 +134,23 @@ def build_room_configs(
                 )
             )
 
+        # Size HVAC to room heat loss: rooms with more exterior exposure
+        # need higher heating gain to maintain target temperature.
+        # With proportional control (power = gain * error), the equilibrium
+        # satisfies: gain * (target - T) = ext_conductance * (T - T_outside).
+        # To keep undershoot below ~0.5 C at design dT ~ 18 K:
+        #   gain >= ext_conductance * 18 / 0.5 = ext_conductance * 36
+        exterior_conductance = sum(w.u_value * w.area_m2 for w in walls if w.neighbor_id == "exterior")
+        min_gain = exterior_conductance * 36
+        hvac_gain = max(HVACConfig.heating_gain, min_gain)
+
         configs[room.id] = RoomPhysicsConfig(
             room_id=room.id,
             volume_m3=volume,
             thermal_mass_j_per_k=thermal_mass,
             walls=walls,
             windows=windows,
-            hvac=HVACConfig(),
+            hvac=HVACConfig(heating_gain=hvac_gain),
         )
 
     # Log thermal properties for every room

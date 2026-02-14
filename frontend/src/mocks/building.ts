@@ -129,8 +129,8 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
       basePower = 200;
     }
     if (id === "r-108") {
-      wastePatterns.push("open_window_heating");
-      actions.push("open_window_alert");
+      wastePatterns.push("rapid_heat_loss");
+      actions.push("suspend_heating");
       baseTemp = 16;
     }
     if (id === "r-106" && tick % 5 < 3) {
@@ -146,8 +146,8 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
       basePower = 350;
     }
     if (id === "r-112" && tick % 7 < 2) {
-      wastePatterns.push("open_window_heating");
-      actions.push("open_window_alert");
+      wastePatterns.push("rapid_heat_loss");
+      actions.push("suspend_heating");
       baseTemp = 15;
     }
 

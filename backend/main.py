@@ -69,9 +69,9 @@ def _apply_actions(update: MetricsUpdate) -> None:
         if "reduce_ventilation" in room_metrics.actions:
             room_config.hvac.max_ventilation_power_w = cfg.reduce_vent_power_w
 
-        if "open_window_alert" in room_metrics.actions:
-            room_config.hvac.target_temperature = cfg.open_window_target_temp_c
-            room_config.hvac.heating_gain = cfg.open_window_heating_gain
+        if "suspend_heating" in room_metrics.actions:
+            room_config.hvac.target_temperature = cfg.suspend_target_temp_c
+            room_config.hvac.heating_gain = cfg.suspend_heating_gain
 
         if "reduce_heating" in room_metrics.actions:
             room_config.hvac.target_temperature = cfg.control_target_temp_c

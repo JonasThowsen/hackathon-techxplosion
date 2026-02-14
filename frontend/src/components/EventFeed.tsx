@@ -172,8 +172,8 @@ function formatWasteMessage(pattern: WastePattern, roomId: string): string {
   switch (pattern) {
     case "empty_room_heating_on":
       return `${roomId}: Heating running in empty room`;
-    case "open_window_heating":
-      return `${roomId}: Window likely open - heating wasted`;
+    case "rapid_heat_loss":
+      return `${roomId}: Rapid heat loss - heating wasted`;
     case "over_heating":
       return `${roomId}: Excess heating detected`;
     case "excessive_ventilation":
@@ -189,7 +189,7 @@ function formatActionMessage(action: ActionType, roomId: string): string {
       return `${roomId}: Lowered heating to hold 21°C baseline`;
     case "reduce_ventilation":
       return `${roomId}: Reducing ventilation in empty room`;
-    case "open_window_alert":
-      return `${roomId}: Open window detected - reducing heating`;
+    case "suspend_heating":
+      return `${roomId}: Suspending heating due to rapid heat loss`;
   }
 }

@@ -54,8 +54,8 @@ class SimConfig:
     boost_heating_gain: float = 700.0
     boost_max_heating_w: float = 3000.0
     reduce_vent_power_w: float = 30.0
-    open_window_target_temp_c: float = 15.0
-    open_window_heating_gain: float = 100.0
+    suspend_target_temp_c: float = 15.0
+    suspend_heating_gain: float = 100.0
 
     # --- System OFF forced power ---
     forced_power_w: float = 500.0

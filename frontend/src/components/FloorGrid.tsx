@@ -146,7 +146,7 @@ export function FloorGrid({
         // Draw waste indicator with pattern-specific icon
         if ((roomMetrics.waste_patterns?.length ?? 0) > 0) {
           const patterns = roomMetrics.waste_patterns ?? [];
-          const hasWindowOpen = patterns.includes("open_window_heating");
+          const hasWindowOpen = patterns.includes("rapid_heat_loss");
           const hasExcessiveVent = patterns.includes("excessive_ventilation");
 
           if (hasWindowOpen) {

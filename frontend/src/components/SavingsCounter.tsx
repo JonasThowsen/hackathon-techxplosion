@@ -13,7 +13,7 @@ function wasteMultiplier(pattern: WastePattern, data: RoomMetrics): number {
   switch (pattern) {
     case "empty_room_heating_on":
       return data.power * 0.8;
-    case "open_window_heating":
+    case "rapid_heat_loss":
       return data.power * 0.9;
     case "over_heating":
       return data.power * 0.3;

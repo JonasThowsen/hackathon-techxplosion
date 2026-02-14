@@ -29,7 +29,7 @@ export interface BuildingLayout {
 
 export type WastePattern =
   | "empty_room_heating_on"
-  | "open_window_heating"
+  | "rapid_heat_loss"
   | "over_heating"
   | "excessive_ventilation";
 
@@ -37,7 +37,7 @@ export type ActionType =
   | "reduce_heating"
   | "boost_heating"
   | "reduce_ventilation"
-  | "open_window_alert";
+  | "suspend_heating";
 
 export interface RoomMetrics {
   temperature: number;

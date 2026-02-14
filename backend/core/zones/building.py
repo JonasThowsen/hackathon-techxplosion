@@ -12,11 +12,11 @@ from core.zones.base import (
     EnergyZone,
     ExcessiveVentilation,
     Metrics,
-    OpenWindowAlert,
-    OpenWindowHeating,
     OverHeating,
+    RapidHeatLoss,
     ReduceHeating,
     ReduceVentilation,
+    SuspendHeating,
     WastePattern,
     action_id,
     waste_pattern_id,
@@ -100,18 +100,18 @@ class BuildingZone(EnergyZone):
 
             hotter_than_neighbours = metrics.temperature > neighbour_avg + _NEIGHBOUR_DEVIATION_C
 
-            # Open window detection: temp dropping while heating is active.
+            # Rapid heat loss detection: temp dropping while heating is active.
             drop_rate = self._temp_drop_rate(room_id)
             if drop_rate > _OPEN_WINDOW_DROP_THRESHOLD_C and metrics.heating_power >= _HEATING_ACTIVE_W:
                 patterns.append(
-                    OpenWindowHeating(
+                    RapidHeatLoss(
                         room_name=room_id,
                         estimated_kwh_wasted=round(
                             (metrics.heating_power / 1000) * (_TICK_DURATION_MINUTES / 60),
                             3,
                         ),
                         duration_minutes=_TICK_DURATION_MINUTES,
-                        temp_drop_rate=round(drop_rate, 3),
+                        heat_loss_rate=round(drop_rate, 3),
                     )
                 )
 
@@ -222,8 +222,8 @@ class BuildingZone(EnergyZone):
                 continue
 
             match pattern:
-                case OpenWindowHeating():
-                    actions.append(OpenWindowAlert(target_device=room_id))
+                case RapidHeatLoss():
+                    actions.append(SuspendHeating(target_device=room_id))
                     acted_rooms.add(room_id)
                 case ExcessiveVentilation():
                     actions.append(ReduceVentilation(target_device=room_id))
@@ -306,7 +306,7 @@ class BuildingZone(EnergyZone):
                     actions_by_room[device].append(action_id(action))
                 case ReduceVentilation(target_device=device):
                     actions_by_room[device].append(action_id(action))
-                case OpenWindowAlert(target_device=device):
+                case SuspendHeating(target_device=device):
                     actions_by_room[device].append(action_id(action))
 
         rooms: dict[str, RoomMetrics] = {}

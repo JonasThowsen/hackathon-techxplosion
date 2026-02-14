@@ -47,7 +47,7 @@ def analyze_root_causes(
             causes.append(
                 RootCause(
                     room_id=room_id,
-                    pattern="open_window",
+                    pattern="rapid_heat_loss",
                     confidence=confidence,
                     explanation=(
                         f"Temperature {metrics.temperature:.1f}C is well below "

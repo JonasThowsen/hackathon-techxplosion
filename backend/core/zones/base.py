@@ -43,13 +43,13 @@ class OverHeating:
 
 
 @dataclass
-class OpenWindowHeating:
-    """Heating running while temperature is dropping (likely open window)."""
+class RapidHeatLoss:
+    """Heating running while temperature drops rapidly (unexplained heat loss)."""
 
     room_name: str
     estimated_kwh_wasted: float
     duration_minutes: float
-    temp_drop_rate: float  # °C per tick
+    heat_loss_rate: float  # °C per tick
 
 
 @dataclass
@@ -61,7 +61,7 @@ class ExcessiveVentilation:
     duration_minutes: float
 
 
-type WastePattern = EmptyRoomHeating | OverHeating | OpenWindowHeating | ExcessiveVentilation
+type WastePattern = EmptyRoomHeating | OverHeating | RapidHeatLoss | ExcessiveVentilation
 
 
 def waste_pattern_id(pattern: WastePattern) -> str:
@@ -71,8 +71,8 @@ def waste_pattern_id(pattern: WastePattern) -> str:
             return "empty_room_heating_on"
         case OverHeating():
             return "over_heating"
-        case OpenWindowHeating():
-            return "open_window_heating"
+        case RapidHeatLoss():
+            return "rapid_heat_loss"
         case ExcessiveVentilation():
             return "excessive_ventilation"
 
@@ -104,13 +104,13 @@ class ReduceVentilation:
 
 
 @dataclass
-class OpenWindowAlert:
-    """Alert that a window appears to be open - reduce heating."""
+class SuspendHeating:
+    """Suspend heating due to rapid heat loss."""
 
     target_device: str
 
 
-type Action = ReduceHeating | BoostHeating | ReduceVentilation | OpenWindowAlert
+type Action = ReduceHeating | BoostHeating | ReduceVentilation | SuspendHeating
 
 
 def action_id(action: Action) -> str:
@@ -122,8 +122,8 @@ def action_id(action: Action) -> str:
             return "boost_heating"
         case ReduceVentilation():
             return "reduce_ventilation"
-        case OpenWindowAlert():
-            return "open_window_alert"
+        case SuspendHeating():
+            return "suspend_heating"
 
 
 # ---------------------------------------------------------------------------
