@@ -5,6 +5,7 @@ import math
 import random
 from typing import Protocol
 
+from data.weather import external_temp_at_tick
 from simulation.config import DEFAULT, SimConfig
 from simulation.room_config import RoomPhysicsConfig, WindowConfig
 from simulation.room_state import RoomState
@@ -89,12 +90,6 @@ def _solar_gain_for_window(window: WindowConfig, hour: float, cfg: SimConfig) ->
         return 0.0
 
     return window.area_m2 * irradiance * window.transmittance * cos_inc
-
-
-def _external_temp_at_hour(hour: float, base: float, amplitude: float) -> float:
-    """External temperature following a sinusoidal day/night cycle."""
-    # Coldest at 6am, warmest at 6pm (shifted sine)
-    return base + amplitude * math.sin(2 * math.pi * (hour - 6) / 24)
 
 
 # ---------------------------------------------------------------------------
@@ -349,8 +344,8 @@ class SimulatedEnvironment:
         # Calculate heat balance
         heat_delta_j = 0.0
 
-        # Time-varying external temperature
-        ext_temp_base = _external_temp_at_hour(hour, cfg.external_temp_base_c, cfg.external_temp_amplitude_c)
+        # Time-varying external temperature from real yr.no data
+        ext_temp_base = external_temp_at_tick(tick, cfg.tick_duration_s)
 
         # Heat loss through walls
         for wall in room_cfg.walls:

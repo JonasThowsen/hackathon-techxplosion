@@ -128,6 +128,7 @@
 .temp-card .card-value { color: #4ecdc4; }
 .rooms-card .card-value { color: #a78bfa; }
 .co2-card .card-value { color: #34d399; }
+.external-temp-card .card-value { color: #f59e0b; }
 
 /* Info Row */
 .info-row {

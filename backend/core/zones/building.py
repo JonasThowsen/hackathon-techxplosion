@@ -24,6 +24,7 @@ from core.zones.patterns import (
     WastePattern,
     waste_pattern_id,
 )
+from data.weather import external_temp_at_tick
 
 _BASELINE_TEMPERATURE_C = 21.0
 _GOOD_AIR_QUALITY_CO2_PPM = 900.0
@@ -334,4 +335,9 @@ class BuildingZone(EnergyZone):
                 if dt > 0.5:  # only significant flows
                     heat_flows.append(HeatFlow(from_room=room_id, to_room=neighbour_id, watts=round(dt * 1.5 * 27, 1)))
 
-        return MetricsUpdate(tick=tick, rooms=rooms, heat_flows=heat_flows)
+        return MetricsUpdate(
+            tick=tick,
+            rooms=rooms,
+            heat_flows=heat_flows,
+            external_temp_c=round(external_temp_at_tick(tick, 180.0), 2),
+        )

@@ -59,3 +59,4 @@ class MetricsUpdate:
     heat_flows: list[HeatFlow] = field(default_factory=list)
     system_enabled: bool = True
     sun_enabled: bool = True
+    external_temp_c: float = 0.0

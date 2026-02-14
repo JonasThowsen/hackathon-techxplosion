@@ -165,5 +165,5 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
     };
   }
 
-  return { tick, rooms };
+  return { tick, rooms, external_temp_c: 3 + 3 * Math.sin(tick * 0.05) };
 }

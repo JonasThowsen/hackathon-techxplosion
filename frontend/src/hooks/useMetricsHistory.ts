@@ -6,6 +6,7 @@ export interface MetricsHistory {
   temperature: number[];
   co2: number[];
   waste: number[];
+  externalTemp: number[];
 }
 
 const MAX_HISTORY = 30;
@@ -16,6 +17,7 @@ export function useMetricsHistory(metrics: MetricsUpdate): MetricsHistory {
     temperature: [],
     co2: [],
     waste: [],
+    externalTemp: [],
   });
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function useMetricsHistory(metrics: MetricsUpdate): MetricsHistory {
     h.temperature = [...h.temperature, avgTemp].slice(-MAX_HISTORY);
     h.co2 = [...h.co2, avgCo2].slice(-MAX_HISTORY);
     h.waste = [...h.waste, wasteCount].slice(-MAX_HISTORY);
+    h.externalTemp = [...h.externalTemp, metrics.external_temp_c ?? 0].slice(-MAX_HISTORY);
   }, [metrics]);
 
   return history.current;

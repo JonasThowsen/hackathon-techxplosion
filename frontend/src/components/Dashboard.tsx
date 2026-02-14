@@ -324,6 +324,18 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
               <div className="card-sub">{(aggregated.co2Emissions * 1000).toFixed(0)} g/hr CO₂</div>
             </div>
           </div>
+
+          <div className="card external-temp-card">
+            <div className="card-icon">🌤️</div>
+            <div className="card-content">
+              <div className="card-header-row">
+                <div className="card-value">{(metrics.external_temp_c ?? 0).toFixed(1)}°C</div>
+                <Sparkline data={history.externalTemp} color="#f59e0b" />
+              </div>
+              <div className="card-label">External Temp</div>
+              <div className="card-sub">yr.no Stavanger</div>
+            </div>
+          </div>
         </section>
 
         {/* Alerts + Events Row */}

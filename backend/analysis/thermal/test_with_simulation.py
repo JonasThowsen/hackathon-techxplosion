@@ -178,7 +178,7 @@ def run_simulation(
         Tuple of (room_histories, external_temps, sim_config)
     """
     sim_config = SimConfig(
-        tick_duration_s=180.0,  # 3 minutes
+        tick_duration_s=3600.0,  # one hour
         external_temp_base_c=5.0,
         external_temp_amplitude_c=6.0,  # Bigger day/night swing
     )

@@ -62,6 +62,7 @@ export interface MetricsUpdate {
   heat_flows?: HeatFlow[];
   system_enabled?: boolean;
   sun_enabled?: boolean;
+  external_temp_c?: number;
 }
 
 // UI state types
