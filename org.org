@@ -527,15 +527,18 @@ Run both together, verify live data end-to-end.
 - [X] Merge incoming metrics into stored geometry, re-render canvas on each tick
 - [X] Add floor selector (tabs or buttons)
 *** Jonas (Backend)
-- [ ] Implement =WS /ws= endpoint, push MetricsUpdate every 2-3 seconds
-- [ ] Generate simulated sensor data that drifts over time (not static)
 - [X] Add CORS config so frontend can connect from different port
-- [ ] Integration check: both running, data flows end-to-end
-- [ ] Add events for sensors that use actions based on analysis
 - [X] Create sensor types and EnergyZone ABC
 - [X] Implement Room/Floor/Building EnergyZone hierarchy
 - [X] Build simulation engine with waste scenarios
 - [X] Wire WS /ws endpoint with live metrics stream
+** Saturday afternoon
+*** Jonas (Backend)
+- [ ] Define room baselines / setpoints (target temp per room type, heating thresholds)
+- [ ] Building-level waste detection in =BuildingZone.identify_waste()= (compare metrics vs baselines)
+- [ ] Building-level actions in =BuildingZone.act()= (generate corrective actions from waste patterns)
+- [ ] Include waste patterns + actions in =MetricsUpdate= for the frontend
+- [ ] Simulation: rooms should drift toward setpoints when actions fire (close the feedback loop)
 
 * Demo Notes
 ** Pitch (30-60 sec)
