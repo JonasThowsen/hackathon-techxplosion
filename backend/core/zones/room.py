@@ -4,12 +4,10 @@ from typing import TYPE_CHECKING, override
 
 from core.models import Room
 from core.sensors import Sensor, SensorKind
-from core.zones.base import (
-    Action,
-    EnergyZone,
-    Metrics,
-    WastePattern,
-)
+from core.zones.actions import Action
+from core.zones.base import EnergyZone
+from core.zones.metrics import Metrics
+from core.zones.patterns import WastePattern
 
 if TYPE_CHECKING:
     from simulation.environment import RoomEnvironmentSource

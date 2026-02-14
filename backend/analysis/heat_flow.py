@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from core.models import Room
-from core.zones.base import Metrics
+from core.zones.metrics import Metrics
 
 # Two vertices are "the same" if within this distance (metres).
 _EPSILON: float = 0.01

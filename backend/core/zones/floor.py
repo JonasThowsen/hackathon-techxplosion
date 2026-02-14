@@ -3,7 +3,10 @@
 from typing import override
 
 from core.models import Floor
-from core.zones.base import Action, EnergyZone, Metrics, WastePattern
+from core.zones.actions import Action
+from core.zones.base import EnergyZone
+from core.zones.metrics import Metrics
+from core.zones.patterns import WastePattern
 from core.zones.room import RoomZone
 
 

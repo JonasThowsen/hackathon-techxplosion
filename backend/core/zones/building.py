@@ -5,23 +5,25 @@ from typing import override
 
 from analysis.adjacency import find_adjacent_rooms, find_vertical_neighbours
 from core.models import BuildingLayout, HeatFlow, MetricsUpdate, RoomMetrics
-from core.zones.base import (
+from core.zones.actions import (
     Action,
     BoostHeating,
-    EmptyRoomHeating,
-    EnergyZone,
-    ExcessiveVentilation,
-    Metrics,
-    OverHeating,
-    RapidHeatLoss,
     ReduceHeating,
     ReduceVentilation,
     SuspendHeating,
-    WastePattern,
     action_id,
+)
+from core.zones.base import EnergyZone
+from core.zones.floor import FloorZone
+from core.zones.metrics import Metrics
+from core.zones.patterns import (
+    EmptyRoomHeating,
+    ExcessiveVentilation,
+    OverHeating,
+    RapidHeatLoss,
+    WastePattern,
     waste_pattern_id,
 )
-from core.zones.floor import FloorZone
 
 _BASELINE_TEMPERATURE_C = 21.0
 _GOOD_AIR_QUALITY_CO2_PPM = 900.0

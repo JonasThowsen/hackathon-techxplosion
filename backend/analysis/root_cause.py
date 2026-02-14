@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass
 
-from core.zones.base import Metrics, OverHeating, WastePattern
+from core.zones.metrics import Metrics
+from core.zones.patterns import OverHeating, WastePattern
 
 
 @dataclass
