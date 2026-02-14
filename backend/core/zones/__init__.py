@@ -2,8 +2,6 @@
 
 from core.zones.base import (
     Action,
-    AppliancesStandby,
-    CutPower,
     EmptyRoomHeating,
     EnergyZone,
     Metrics,
@@ -18,9 +16,7 @@ from core.zones.room import RoomZone
 
 __all__ = [
     "Action",
-    "AppliancesStandby",
     "BuildingZone",
-    "CutPower",
     "EmptyRoomHeating",
     "EnergyZone",
     "FloorZone",

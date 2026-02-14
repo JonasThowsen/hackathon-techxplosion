@@ -11,7 +11,12 @@ class Metrics:
     temperature: float
     occupancy: bool
     co2: float
-    power: float
+    heating_power: float
+    ventilation_power: float
+
+    @property
+    def total_hvac_power(self) -> float:
+        return self.heating_power + self.ventilation_power
 
 
 # ---------------------------------------------------------------------------
@@ -37,16 +42,7 @@ class OverHeating:
     duration_minutes: float
 
 
-@dataclass
-class AppliancesStandby:
-    """Appliances drawing standby power in an empty room."""
-
-    room_name: str
-    estimated_kwh_wasted: float
-    duration_minutes: float
-
-
-type WastePattern = EmptyRoomHeating | OverHeating | AppliancesStandby
+type WastePattern = EmptyRoomHeating | OverHeating
 
 
 def waste_pattern_id(pattern: WastePattern) -> str:
@@ -56,8 +52,6 @@ def waste_pattern_id(pattern: WastePattern) -> str:
             return "empty_room_heating_on"
         case OverHeating():
             return "over_heating"
-        case AppliancesStandby():
-            return "appliances_standby"
 
 
 # ---------------------------------------------------------------------------
@@ -72,14 +66,7 @@ class ReduceHeating:
     target_device: str
 
 
-@dataclass
-class CutPower:
-    """Command to cut standby power on a device."""
-
-    target_device: str
-
-
-type Action = ReduceHeating | CutPower
+type Action = ReduceHeating
 
 
 # ---------------------------------------------------------------------------

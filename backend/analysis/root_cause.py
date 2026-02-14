@@ -37,8 +37,10 @@ def analyze_root_causes(
         neighbours = adjacency.get(room_id, [])
         has_overheating = any(isinstance(p, OverHeating) for p in patterns)
 
-        # Open window: temp below average while power is high
-        if metrics.temperature < avg_temp - 2.0 and metrics.power > 150.0:
+        hvac_power = metrics.total_hvac_power
+
+        # Open window: temp below average while heating power is high
+        if metrics.temperature < avg_temp - 2.0 and hvac_power > 150.0:
             confidence = 0.7
             if metrics.co2 < 420.0:
                 confidence = 0.9  # low CO2 strongly suggests open window
@@ -49,15 +51,15 @@ def analyze_root_causes(
                     confidence=confidence,
                     explanation=(
                         f"Temperature {metrics.temperature:.1f}C is well below "
-                        f"average ({avg_temp:.1f}C) while power draw is "
-                        f"{metrics.power:.0f}W — likely an open window"
+                        f"average ({avg_temp:.1f}C) while HVAC power is "
+                        f"{hvac_power:.0f}W — likely an open window"
                     ),
                     related_rooms=[],
                 ),
             )
 
         # Solar gain: temp above average with low power
-        if metrics.temperature > avg_temp + 2.0 and metrics.power < 80.0:
+        if metrics.temperature > avg_temp + 2.0 and hvac_power < 80.0:
             causes.append(
                 RootCause(
                     room_id=room_id,
@@ -65,8 +67,8 @@ def analyze_root_causes(
                     confidence=0.6,
                     explanation=(
                         f"Temperature {metrics.temperature:.1f}C is above "
-                        f"average ({avg_temp:.1f}C) despite low power "
-                        f"({metrics.power:.0f}W) — possible solar gain"
+                        f"average ({avg_temp:.1f}C) despite low HVAC power "
+                        f"({hvac_power:.0f}W) — possible solar gain"
                     ),
                     related_rooms=[],
                 ),

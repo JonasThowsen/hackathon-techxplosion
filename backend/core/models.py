@@ -1,6 +1,6 @@
 """Core data models for the building energy system."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -28,12 +28,17 @@ class BuildingLayout:
 
 @dataclass
 class RoomMetrics:
+    """Metrics for a single room - sent via WebSocket."""
+
     temperature: float
     occupancy: bool
     co2: float
-    power: float
-    waste_patterns: list[str] = field(default_factory=list)
-    heat_flow: float = 0.0  # net heat gain/loss in watts (positive = gaining heat)
+    heating_power: float  # Power used for heating (W)
+    ventilation_power: float  # Power used for ventilation (W)
+
+    @property
+    def total_hvac_power(self) -> float:
+        return self.heating_power + self.ventilation_power
 
 
 @dataclass

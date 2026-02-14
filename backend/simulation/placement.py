@@ -7,7 +7,7 @@ from core.sensors import Sensor, SensorKind
 def place_sensors(building: BuildingLayout) -> dict[str, list[Sensor]]:
     """Place sensors in each room. Returns room_id -> list[Sensor].
 
-    For each room, create one sensor of each kind (temp, occupancy, co2, power, light).
+    For each room, create one sensor of each kind.
     Position each sensor at the centroid of the room polygon.
     """
     result: dict[str, list[Sensor]] = {}
@@ -20,6 +20,7 @@ def place_sensors(building: BuildingLayout) -> dict[str, list[Sensor]]:
                 sensor = Sensor(
                     id=f"{room.id}-{kind.value}",
                     kind=kind,
+                    room_id=room.id,
                     x=cx,
                     y=cy,
                     floor=floor.floor_index,

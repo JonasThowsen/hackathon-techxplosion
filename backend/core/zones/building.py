@@ -2,9 +2,8 @@
 
 from typing import override
 
-from analysis import calculate_heat_flows, find_adjacent_rooms, net_heat_flow_by_room
-from core.models import BuildingLayout, MetricsUpdate, Room, RoomMetrics
-from core.zones.base import Action, EnergyZone, Metrics, WastePattern, waste_pattern_id
+from core.models import BuildingLayout, MetricsUpdate, RoomMetrics
+from core.zones.base import Action, EnergyZone, Metrics, WastePattern
 from core.zones.floor import FloorZone
 
 
@@ -18,7 +17,13 @@ class BuildingZone(EnergyZone):
     @override
     def collect_metrics(self) -> Metrics:
         if not self.floors:
-            return Metrics(temperature=0.0, occupancy=False, co2=0.0, power=0.0)
+            return Metrics(
+                temperature=0.0,
+                occupancy=False,
+                co2=0.0,
+                heating_power=0.0,
+                ventilation_power=0.0,
+            )
 
         floor_metrics = [f.collect_metrics() for f in self.floors]
         n = len(floor_metrics)
@@ -26,7 +31,8 @@ class BuildingZone(EnergyZone):
             temperature=sum(m.temperature for m in floor_metrics) / n,
             occupancy=any(m.occupancy for m in floor_metrics),
             co2=sum(m.co2 for m in floor_metrics) / n,
-            power=sum(m.power for m in floor_metrics),
+            heating_power=sum(m.heating_power for m in floor_metrics),
+            ventilation_power=sum(m.ventilation_power for m in floor_metrics),
         )
 
     @override
@@ -45,33 +51,17 @@ class BuildingZone(EnergyZone):
 
     def to_metrics_update(self, tick: int) -> MetricsUpdate:
         """Generate a MetricsUpdate for the WebSocket stream."""
-        room_metrics_map: dict[str, Metrics] = {}
-        room_waste_map: dict[str, list[WastePattern]] = {}
         rooms: dict[str, RoomMetrics] = {}
-        all_rooms: list[Room] = []
 
         for floor_zone in self.floors:
             for room_zone in floor_zone.rooms:
                 metrics = room_zone.collect_metrics()
-                waste = room_zone.identify_waste()
-                room_metrics_map[room_zone.room.id] = metrics
-                room_waste_map[room_zone.room.id] = waste
-                all_rooms.append(room_zone.room)
                 rooms[room_zone.room.id] = RoomMetrics(
                     temperature=metrics.temperature,
                     occupancy=metrics.occupancy,
                     co2=metrics.co2,
-                    power=metrics.power,
-                    waste_patterns=[waste_pattern_id(p) for p in waste],
+                    heating_power=metrics.heating_power,
+                    ventilation_power=metrics.ventilation_power,
                 )
-
-        # Compute heat flows and apply net flow to each room
-        adjacency = find_adjacent_rooms(all_rooms)
-        flows = calculate_heat_flows(room_metrics_map, adjacency, all_rooms)
-        net_flows = net_heat_flow_by_room(flows)
-
-        for room_id, net in net_flows.items():
-            if room_id in rooms:
-                rooms[room_id].heat_flow = round(net, 1)
 
         return MetricsUpdate(tick=tick, rooms=rooms)
