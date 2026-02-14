@@ -37,11 +37,17 @@ export function useMetrics(useMock: boolean = true): {
   useEffect(() => {
     if (useMock) return;
 
+    let cancelled = false;
+    let reconnectTimer: number | undefined;
+
     function connect() {
+      if (cancelled) return;
+
       const ws = new WebSocket(WS_URL);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        if (cancelled) { ws.close(); return; }
         setConnected(true);
         setError(null);
       };
@@ -61,14 +67,18 @@ export function useMetrics(useMock: boolean = true): {
 
       ws.onclose = () => {
         setConnected(false);
-        // Reconnect after delay
-        setTimeout(connect, 3000);
+        wsRef.current = null;
+        if (!cancelled) {
+          reconnectTimer = window.setTimeout(connect, 3000);
+        }
       };
     }
 
     connect();
 
     return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
   }, [useMock]);

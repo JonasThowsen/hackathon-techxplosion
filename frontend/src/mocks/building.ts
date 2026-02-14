@@ -99,22 +99,22 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
 
   for (const id of allRoomIds) {
     const isCorridor = id.includes("corridor");
-    const isCommon = id.includes("11")
+    const isCommon = id.includes("11");
 
     let baseTemp = 21;
-    let baseOccupancy = 0.3;
+    let occupied = Math.random() > 0.5;
     let baseCo2 = 450;
     let basePower = 100;
     const wastePatterns: MetricsUpdate["rooms"][string]["waste_patterns"] = [];
 
     if (isCorridor) {
       baseTemp = 19;
-      baseOccupancy = 0.05;
+      occupied = false;
       baseCo2 = 380;
       basePower = 30;
     } else if (isCommon) {
       baseTemp = 22;
-      baseOccupancy = 0.5;
+      occupied = true;
       baseCo2 = 550;
       basePower = 250;
     }
@@ -123,7 +123,7 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
     if (id === "r-103") {
       wastePatterns.push("empty_room_heating_on");
       baseTemp = 26;
-      baseOccupancy = 0;
+      occupied = false;
       basePower = 200;
     }
     if (id === "r-108") {
@@ -137,7 +137,7 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
 
     rooms[id] = {
       temperature: Math.max(15, Math.min(30, vary(baseTemp, 1.5))),
-      occupancy: Math.max(0, Math.min(1, vary(baseOccupancy, 0.15))),
+      occupancy: occupied,
       co2: Math.max(300, Math.min(1000, vary(baseCo2, 50))),
       power: Math.max(0, Math.min(500, vary(basePower, 30))),
       waste_patterns: wastePatterns,

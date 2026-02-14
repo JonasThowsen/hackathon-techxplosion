@@ -43,6 +43,14 @@
   font-size: 0.8rem;
 }
 
+.live-indicator.disconnected {
+  color: #ff8844;
+}
+
+.live-indicator.disconnected .live-dot {
+  background: #ff8844;
+}
+
 .live-dot {
   width: 6px;
   height: 6px;

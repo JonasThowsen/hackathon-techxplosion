@@ -36,10 +36,11 @@ export type WastePattern =
 
 export interface RoomMetrics {
   temperature: number;
-  occupancy: number;
+  occupancy: boolean;
   co2: number;
   power: number;
   waste_patterns: WastePattern[];
+  heat_flow?: number; // Net heat gain/loss in watts (positive = gaining heat)
 }
 
 export interface MetricsUpdate {

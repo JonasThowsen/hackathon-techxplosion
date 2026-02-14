@@ -11,6 +11,7 @@ interface DashboardProps {
   metrics: MetricsUpdate;
   sunPosition?: SunPosition;
   onOpenEditor: () => void;
+  connected?: boolean;
 }
 
 interface AggregatedMetrics {
@@ -142,7 +143,7 @@ function createAlert(
   }
 }
 
-export function Dashboard({ building, metrics, sunPosition, onOpenEditor }: DashboardProps) {
+export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connected }: DashboardProps) {
   const [selectedFloor, setSelectedFloor] = useState(0);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("temperature");
   const [hoveredRoom, setHoveredRoom] = useState<{
@@ -179,8 +180,8 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor }: Dash
           <span className="building-name">{building.name}</span>
         </div>
         <div className="header-right">
-          <span className="live-indicator">
-            <span className="live-dot" /> Live
+          <span className={`live-indicator ${connected === false ? "disconnected" : ""}`}>
+            <span className="live-dot" /> {connected === false ? "Reconnecting..." : "Live"}
           </span>
           <span className="tick">Tick {metrics.tick}</span>
           <button className="editor-btn" onClick={onOpenEditor}>
