@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { BuildingLayout } from "../types";
 import { MOCK_BUILDING } from "../mocks/building";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 /**
  * Fetches building layout from backend.
@@ -24,7 +24,11 @@ export function useBuilding(useMock: boolean = true): {
 
     async function fetchBuilding() {
       try {
-        const res = await fetch(`${API_BASE}/building`);
+        let base = API_BASE;
+        if (base && !base.startsWith("http")) {
+          base = window.location.protocol + "//" + base;
+        }
+        const res = await fetch(`${base}/building`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setBuilding(data);

@@ -37,6 +37,12 @@ class RoomMetrics:
     ventilation_power: float  # Power used for ventilation (W)
     waste_patterns: list[str] = field(default_factory=list)
     actions: list[str] = field(default_factory=list)
+    predicted_temp_30min: float | None = None
+    predicted_temp_1h: float | None = None
+    predicted_temp_2h: float | None = None
+    prediction_uncertainty: float | None = None
+    prediction_warnings: list[str] = field(default_factory=list)
+    uses_estimated_params: bool = False
 
     @property
     def total_hvac_power(self) -> float:
@@ -60,3 +66,4 @@ class MetricsUpdate:
     system_enabled: bool = True
     sun_enabled: bool = True
     external_temp_c: float = 0.0
+    simulated_time: str = ""  # ISO format timestamp representing simulation time

@@ -48,6 +48,12 @@ export interface RoomMetrics {
   power: number; // computed: heating_power + ventilation_power
   waste_patterns?: WastePattern[];
   actions?: ActionType[];
+  predicted_temp_30min?: number;
+  predicted_temp_1h?: number;
+  predicted_temp_2h?: number;
+  prediction_uncertainty?: number;
+  prediction_warnings?: string[];
+  uses_estimated_params?: boolean;
 }
 
 export interface HeatFlow {
@@ -63,6 +69,23 @@ export interface MetricsUpdate {
   system_enabled?: boolean;
   sun_enabled?: boolean;
   external_temp_c?: number;
+  simulated_time?: string;
+}
+
+// Thermal estimation types
+
+export interface ThermalRoomParams {
+  thermal_mass_j_k: number;
+  exterior_conductance_w_k: number | null;
+}
+
+export interface ThermalEstimationResult {
+  success: boolean;
+  message: string;
+  rmse: number;
+  r_squared: number;
+  rooms: Record<string, ThermalRoomParams>;
+  conductances: Record<string, number>;
 }
 
 // UI state types

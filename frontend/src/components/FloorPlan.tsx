@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from "react";
-import type { Floor, RoomMetrics, MetricType } from "../types";
+import type { Floor, RoomMetrics, MetricType, HeatFlow } from "../types";
 import { METRIC_CONFIGS } from "../types";
 import { getMetricColor } from "../utils/colors";
 
@@ -18,6 +18,7 @@ interface FloorPlanProps {
   canvasWidth?: number;
   canvasHeight?: number;
   sunPosition?: SunPosition;
+  heatFlows?: HeatFlow[];
   onRoomHover?: (roomId: string | null, x: number, y: number) => void;
   onRoomClick?: (roomId: string) => void;
 }
@@ -37,6 +38,7 @@ export function FloorPlan({
   canvasWidth = 800,
   canvasHeight = 540,
   sunPosition,
+  heatFlows,
   onRoomHover,
   onRoomClick,
 }: FloorPlanProps) {
@@ -115,6 +117,35 @@ export function FloorPlan({
     },
     [floor.rooms, pixelsToMeters, isPointInPolygon]
   );
+
+  // Helper to find shared edge between two rooms
+  const findSharedEdge = useCallback((
+    roomA: { polygon: [number, number][] },
+    roomB: { polygon: [number, number][] }
+  ): [number, number, number, number] | null => {
+    const vertsA = roomA.polygon;
+    const vertsB = roomB.polygon;
+    
+    for (let i = 0; i < vertsA.length; i++) {
+      const a1 = vertsA[i];
+      const a2 = vertsA[(i + 1) % vertsA.length];
+      
+      for (let j = 0; j < vertsB.length; j++) {
+        const b1 = vertsB[j];
+        const b2 = vertsB[(j + 1) % vertsB.length];
+        
+        const share1 = (Math.abs(a1[0] - b1[0]) < 0.01 && Math.abs(a1[1] - b1[1]) < 0.01);
+        const share2 = (Math.abs(a1[0] - b2[0]) < 0.01 && Math.abs(a1[1] - b2[1]) < 0.01);
+        const share3 = (Math.abs(a2[0] - b1[0]) < 0.01 && Math.abs(a2[1] - b1[1]) < 0.01);
+        const share4 = (Math.abs(a2[0] - b2[0]) < 0.01 && Math.abs(a2[1] - b2[1]) < 0.01);
+        
+        if ((share1 && share4) || (share2 && share3)) {
+          return [(a1[0] + a2[0]) / 2, (a1[1] + a2[1]) / 2, (b1[0] + b2[0]) / 2, (b1[1] + b2[1]) / 2];
+        }
+      }
+    }
+    return null;
+  }, []);
 
   // Zoom handlers
   const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number) => {
@@ -343,6 +374,135 @@ export function FloorPlan({
     const [ox1, oy1] = metersToPixels(0, 0);
     const [ox2, oy2] = metersToPixels(buildingWidth, buildingHeight);
     ctx.strokeRect(ox1, oy1, ox2 - ox1, oy2 - oy1);
+
+    // Heat flow arrows
+    if (heatFlows && heatFlows.length > 0) {
+      const floorRoomIds = new Set(floor.rooms.map(r => r.id));
+      
+      for (const flow of heatFlows) {
+        // Only show arrows for rooms on this floor
+        if (!floorRoomIds.has(flow.from_room) || !floorRoomIds.has(flow.to_room)) continue;
+        
+        const fromRoom = floor.rooms.find(r => r.id === flow.from_room);
+        const toRoom = floor.rooms.find(r => r.id === flow.to_room);
+        if (!fromRoom || !toRoom) continue;
+        
+        // Get center of each room to determine direction
+        const fromCenterX = fromRoom.polygon.reduce((sum, p) => sum + p[0], 0) / fromRoom.polygon.length;
+        const fromCenterY = fromRoom.polygon.reduce((sum, p) => sum + p[1], 0) / fromRoom.polygon.length;
+        
+        // Find the shared edge and determine which point is closer to fromRoom center
+        const edge = findSharedEdge(fromRoom, toRoom);
+        if (!edge) continue;
+        
+        const [ex1, ey1, ex2, ey2] = edge;
+        
+        // Distance from fromRoom center to each edge point
+        const dist1 = Math.sqrt((ex1 - fromCenterX) ** 2 + (ey1 - fromCenterY) ** 2);
+        const dist2 = Math.sqrt((ex2 - fromCenterX) ** 2 + (ey2 - fromCenterY) ** 2);
+        
+        // Start from the edge point closer to fromRoom, end at the one closer to toRoom
+        let startX, startY, endX, endY;
+        if (dist1 < dist2) {
+          startX = ex1; startY = ey1;
+          endX = ex2; endY = ey2;
+        } else {
+          startX = ex2; startY = ey2;
+          endX = ex1; endY = ey1;
+        }
+        
+        const [px1, py1] = metersToPixels(startX, startY);
+        const [px2, py2] = metersToPixels(endX, endY);
+        
+        // Heat is flowing from fromRoom to toRoom (watts is always positive in backend)
+        const intensity = Math.min(1, Math.abs(flow.watts) / 150);
+        const color = `rgba(255, 100, 30, ${0.7 + intensity * 0.3})`;
+        
+        // Draw white outline for visibility
+        const lineWidth = Math.max(3, 4 * zoom);
+        const headSize = Math.max(10, 12 * zoom);
+        
+        // White background line
+        ctx.beginPath();
+        ctx.moveTo(px1, py1);
+        ctx.lineTo(px2, py2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.lineWidth = lineWidth + 3;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        
+        // Colored line
+        ctx.beginPath();
+        ctx.moveTo(px1, py1);
+        ctx.lineTo(px2, py2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        
+        // Arrow head
+        const angle = Math.atan2(py2 - py1, px2 - px1);
+        
+        // White outline for arrow head
+        ctx.beginPath();
+        ctx.moveTo(px2, py2);
+        ctx.lineTo(
+          px2 - headSize * Math.cos(angle - Math.PI / 6),
+          py2 - headSize * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+          px2 - headSize * Math.cos(angle + Math.PI / 6),
+          py2 - headSize * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.fill();
+        
+        // Colored arrow head
+        ctx.beginPath();
+        ctx.moveTo(px2, py2);
+        ctx.lineTo(
+          px2 - (headSize - 2) * Math.cos(angle - Math.PI / 6),
+          py2 - (headSize - 2) * Math.sin(angle - Math.PI / 6)
+        );
+        ctx.lineTo(
+          px2 - (headSize - 2) * Math.cos(angle + Math.PI / 6),
+          py2 - (headSize - 2) * Math.sin(angle + Math.PI / 6)
+        );
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+        
+        // Draw watts label
+        const midX = (px1 + px2) / 2;
+        const midY = (py1 + py2) / 2;
+        const labelText = `${flow.watts.toFixed(0)}W`;
+        ctx.font = `bold ${Math.max(10, 11 * zoom)}px monospace`;
+        const textMetrics = ctx.measureText(labelText);
+        const padding = 3;
+        
+        ctx.fillStyle = "rgba(10, 20, 40, 0.85)";
+        ctx.fillRect(
+          midX - textMetrics.width / 2 - padding,
+          midY - 8 * zoom - padding - 6,
+          textMetrics.width + padding * 2,
+          14 * zoom
+        );
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(
+          midX - textMetrics.width / 2 - padding,
+          midY - 8 * zoom - padding - 6,
+          textMetrics.width + padding * 2,
+          14 * zoom
+        );
+        
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(labelText, midX, midY - 8 * zoom);
+      }
+    }
 
     // Labels (only show if zoomed in enough)
     if (zoom >= 0.8) {

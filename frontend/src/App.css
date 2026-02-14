@@ -233,6 +233,64 @@ body {
   font-size: 0.8rem;
 }
 
+.tooltip-section {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #333;
+}
+
+.tooltip-section-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-section .tooltip-row {
+  font-size: 0.75rem;
+}
+
+.tooltip-row.highlight-loss {
+  color: #ff6b6b;
+  font-weight: 500;
+}
+
+.tooltip-row.highlight-cost {
+  color: #81c784;
+  font-weight: 500;
+}
+
+.tooltip-row.warning {
+  color: #ffb74d;
+}
+
+.tooltip-row .prediction {
+  font-family: monospace;
+}
+
+.param-badge {
+  font-size: 0.6rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #4caf50;
+  color: white;
+  margin-left: 4px;
+}
+
+.param-badge.geometry {
+  background: #9e9e9e;
+}
+
+.tooltip-row.heat-gain {
+  color: #64b5f6;
+}
+
+.tooltip-row.heat-loss {
+  color: #ffb74d;
+}
+
 .floor-plan-container {
   position: relative;
   display: inline-block;

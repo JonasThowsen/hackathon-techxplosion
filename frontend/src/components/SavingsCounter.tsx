@@ -4,9 +4,10 @@ import type { MetricsUpdate, RoomMetrics, WastePattern } from "../types";
 interface SavingsCounterProps {
   metrics: MetricsUpdate;
   intervalMs?: number;
+  electricityPrice?: number;
 }
 
-const ELECTRICITY_PRICE_NOK = 1.5; // NOK per kWh
+const DEFAULT_PRICE = 1.5;
 const CO2_FACTOR = 0.02; // kg CO2 per kWh
 
 function wasteMultiplier(pattern: WastePattern, data: RoomMetrics): number {
@@ -32,7 +33,7 @@ function calculateWasteWatts(rooms: Record<string, RoomMetrics>): number {
   return waste;
 }
 
-export function SavingsCounter({ metrics, intervalMs = 2000 }: SavingsCounterProps) {
+export function SavingsCounter({ metrics, intervalMs = 2000, electricityPrice = DEFAULT_PRICE }: SavingsCounterProps) {
   const [savedKwh, setSavedKwh] = useState(0);
   const wasteRate = useRef(0);
   const lastUpdate = useRef(Date.now());
@@ -55,7 +56,7 @@ export function SavingsCounter({ metrics, intervalMs = 2000 }: SavingsCounterPro
     return () => clearInterval(interval);
   }, [intervalMs]);
 
-  const savedNok = savedKwh * ELECTRICITY_PRICE_NOK;
+  const savedNok = savedKwh * electricityPrice;
   const savedCo2 = savedKwh * CO2_FACTOR * 1000; // grams
 
   return (

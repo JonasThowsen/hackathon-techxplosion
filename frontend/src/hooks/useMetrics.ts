@@ -2,7 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { MetricsUpdate } from "../types";
 import { generateMockMetrics } from "../mocks/building";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws";
+function getWsUrl(): string {
+  const envUrl = import.meta.env.VITE_WS_URL;
+  if (envUrl) return envUrl;
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}/ws`;
+}
+
+const WS_URL = getWsUrl();
 
 /**
  * Connects to WebSocket for live metrics updates.

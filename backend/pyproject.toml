@@ -10,6 +10,7 @@ dependencies = [
     "websockets>=16.0",
     "numpy>=2.0.0",
     "scipy>=1.14.0",
+    "aiohttp>=3.10.0",
 ]
 
 [dependency-groups]
@@ -37,6 +38,7 @@ select = [
 ignore = [
     "E501",   # line length (let formatter handle it)
     "SIM108", # don't force ternary expressions
+    "RUF012", # mutable class attrs in services
 ]
 
 [tool.basedpyright]

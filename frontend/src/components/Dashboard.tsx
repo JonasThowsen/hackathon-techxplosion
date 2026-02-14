@@ -3,7 +3,7 @@ import { FloorPlan, type SunPosition } from "./FloorPlan";
 import { EventFeed } from "./EventFeed";
 import { Sparkline } from "./Sparkline";
 import { useMetricsHistory } from "../hooks/useMetricsHistory";
-import type { BuildingLayout, MetricsUpdate, MetricType, RoomMetrics, WastePattern } from "../types";
+import type { BuildingLayout, MetricsUpdate, MetricType, RoomMetrics, WastePattern, ThermalEstimationResult, HeatFlow } from "../types";
 import { METRIC_CONFIGS } from "../types";
 
 interface DashboardProps {
@@ -12,6 +12,7 @@ interface DashboardProps {
   sunPosition?: SunPosition;
   onOpenEditor: () => void;
   connected?: boolean;
+  electricityPrice?: number;
 }
 
 interface AggregatedMetrics {
@@ -33,15 +34,16 @@ interface Alert {
   estimatedWaste: number; // Watts
 }
 
-const ELECTRICITY_PRICE_NOK = 1.5; // NOK per kWh (example)
 const CO2_FACTOR = 0.02; // kg CO2 per kWh (Norway hydro)
 
 function aggregateMetrics(
   building: BuildingLayout,
-  metrics: MetricsUpdate
+  metrics: MetricsUpdate,
+  electricityPriceNok: number = 1.5
 ): AggregatedMetrics {
   const rooms = Object.entries(metrics.rooms);
   const roomCount = rooms.length;
+  const ELECTRICITY_PRICE = electricityPriceNok;
 
   if (roomCount === 0) {
     return {
@@ -80,7 +82,7 @@ function aggregateMetrics(
   }
 
   const powerKw = totalPower / 1000;
-  const energyCostPerHour = powerKw * ELECTRICITY_PRICE_NOK;
+  const energyCostPerHour = powerKw * ELECTRICITY_PRICE;
   const co2PerHour = powerKw * CO2_FACTOR;
 
   return {
@@ -140,7 +142,7 @@ function createAlert(
   }
 }
 
-export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connected }: DashboardProps) {
+export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connected, electricityPrice = 1.5 }: DashboardProps) {
   const [selectedFloor, setSelectedFloor] = useState(0);
   const [selectedMetric, setSelectedMetric] = useState<MetricType>("temperature");
   const [hoveredRoom, setHoveredRoom] = useState<{
@@ -150,6 +152,10 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
   } | null>(null);
   const [systemEnabled, setSystemEnabled] = useState(true);
   const [sunEnabled, setSunEnabled] = useState(true);
+  const [thermalEstimation, setThermalEstimation] = useState<ThermalEstimationResult | null>(null);
+  const [showThermalPanel, setShowThermalPanel] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     if (metrics.system_enabled !== undefined) {
@@ -160,9 +166,42 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
     }
   }, [metrics]);
 
+  // Poll for thermal estimation results
+  useEffect(() => {
+    if (!showThermalPanel) return;
+    
+    const fetchEstimation = async () => {
+      try {
+        const res = await fetch(`${API_URL}/thermal/estimation`);
+        const data = await res.json();
+        if ("success" in data) {
+          setThermalEstimation(data as ThermalEstimationResult);
+        }
+      } catch (e) {
+        console.error("Failed to fetch thermal estimation:", e);
+      }
+    };
+
+    fetchEstimation();
+    const interval = setInterval(fetchEstimation, 5000);
+    return () => clearInterval(interval);
+  }, [showThermalPanel]);
+
+  const handleRunEstimation = async () => {
+    try {
+      const res = await fetch(`${API_URL}/thermal/estimation/run`, { method: "POST" });
+      const data = await res.json();
+      if ("success" in data) {
+        setThermalEstimation(data as ThermalEstimationResult);
+      }
+    } catch (e) {
+      console.error("Failed to run estimation:", e);
+    }
+  };
+
   const handleToggle = async () => {
     try {
-      const res = await fetch("http://localhost:8000/system/toggle", { method: "POST" });
+      const res = await fetch(`${API_URL}/system/toggle`, { method: "POST" });
       const data = await res.json() as { enabled: boolean };
       setSystemEnabled(data.enabled);
     } catch (e) {
@@ -172,7 +211,7 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
 
   const handleSunToggle = async () => {
     try {
-      const res = await fetch("http://localhost:8000/sun/toggle", { method: "POST" });
+      const res = await fetch(`${API_URL}/sun/toggle`, { method: "POST" });
       const data = await res.json() as { enabled: boolean };
       setSunEnabled(data.enabled);
     } catch (e) {
@@ -183,8 +222,8 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
   const floor = building.floors[selectedFloor];
   const history = useMetricsHistory(metrics);
   const aggregated = useMemo(
-    () => aggregateMetrics(building, metrics),
-    [building, metrics]
+    () => aggregateMetrics(building, metrics, electricityPrice),
+    [building, metrics, electricityPrice]
   );
 
   const totalWaste = aggregated.alerts.reduce((sum, a) => sum + a.estimatedWaste, 0);
@@ -242,7 +281,7 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
           <span className={`live-indicator ${connected === false ? "disconnected" : ""}`}>
             <span className="live-dot" /> {connected === false ? "Reconnecting..." : "Live"}
           </span>
-          <span className="tick">Tick {metrics.tick}</span>
+          <span className="tick">{metrics.simulated_time ? new Date(metrics.simulated_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : `Tick ${metrics.tick}`}</span>
           <button className="editor-btn" onClick={onOpenEditor}>
             Editor
           </button>
@@ -340,51 +379,215 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
 
         {/* Alerts + Events Row */}
         <section className="info-row">
-          {aggregated.alerts.length > 0 && (
-            <div className="alerts-panel">
-              <h3>Alerts ({aggregated.alerts.length})</h3>
-              <div className="alerts-list">
-                {aggregated.alerts.map((alert, i) => (
-                  <div key={`${alert.roomId}-${i}`} className={`alert-item ${alert.severity}`}>
-                    <span className="alert-room">{alert.roomName}</span>
-                    <span className="alert-message">{alert.message}</span>
-                    <span className="alert-waste">-{(alert.estimatedWaste).toFixed(0)}W</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           <EventFeed metrics={metrics} maxEvents={8} />
-        </section>
-
-        {/* Energy Flow Visualization */}
-        <section className="energy-flow">
-          <h2>Energy Distribution</h2>
-          <div className="flow-bars">
-            {Object.entries(metrics.rooms)
-              .sort(([, a], [, b]) => b.power - a.power)
-              .slice(0, 8)
-              .map(([roomId, data]) => {
+          <div className="flow-metrics">
+            <h3>Heat Flow Analysis</h3>
+            <div className="flow-metrics-grid">
+              {Object.entries(metrics.rooms).map(([roomId, data]) => {
                 const roomName = building.floors
                   .flatMap(f => f.rooms)
                   .find(r => r.id === roomId)?.name || roomId;
-                const percent = (data.power / aggregated.totalPower) * 100;
-                const hasWaste = (data.waste_patterns?.length ?? 0) > 0;
-
+                
+                // Get heat flows for this room
+                const roomHeatFlows = metrics.heat_flows?.filter(f => f.from_room === roomId || f.to_room === roomId) ?? [];
+                const heatToNeighbors = roomHeatFlows.filter(f => f.from_room === roomId).reduce((sum, f) => sum + f.watts, 0);
+                const heatFromNeighbors = roomHeatFlows.filter(f => f.to_room === roomId).reduce((sum, f) => sum + f.watts, 0);
+                
+                // Get estimated exterior heat loss
+                const thermalParams = thermalEstimation?.rooms[roomId];
+                const extConductance = thermalParams?.exterior_conductance_w_k ?? null;
+                const extTemp = metrics.external_temp_c ?? 5;
+                const tempDiff = Math.max(0, data.temperature - extTemp);
+                const extHeatLoss = extConductance ? extConductance * tempDiff : null;
+                
+                // Heating input
+                const heatingIn = data.heating_power;
+                
+                // Calculate percentages for visualization
+                const totalOut = heatingIn + (heatToNeighbors || 0) + (extHeatLoss || 0);
+                
                 return (
-                  <div key={roomId} className="flow-bar-row">
-                    <span className="flow-room">{roomName}</span>
-                    <div className="flow-bar-container">
-                      <div
-                        className={`flow-bar ${hasWaste ? "waste" : ""}`}
-                        style={{ width: `${percent}%` }}
-                      />
+                  <div key={roomId} className="flow-metric-card">
+                    <div className="flow-metric-header">{roomName}</div>
+                    <div className="flow-metric-bars">
+                      <div className="flow-metric-row">
+                        <span className="flow-label">Heating in</span>
+                        <div className="flow-bar-track">
+                          <div className="flow-bar heating" style={{ width: `${totalOut > 0 ? (heatingIn / totalOut) * 100 : 0}%` }} />
+                        </div>
+                        <span className="flow-num">{heatingIn.toFixed(0)}W</span>
+                      </div>
+                      {extHeatLoss !== null && (
+                        <div className="flow-metric-row">
+                          <span className="flow-label">→ Outside</span>
+                          <div className="flow-bar-track">
+                            <div className="flow-bar outside" style={{ width: `${totalOut > 0 ? (extHeatLoss / totalOut) * 100 : 0}%` }} />
+                          </div>
+                          <span className="flow-num">{extHeatLoss.toFixed(0)}W</span>
+                        </div>
+                      )}
+                      {heatToNeighbors > 0 && (
+                        <div className="flow-metric-row">
+                          <span className="flow-label">→ Neighbors</span>
+                          <div className="flow-bar-track">
+                            <div className="flow-bar neighbors-out" style={{ width: `${totalOut > 0 ? (heatToNeighbors / totalOut) * 100 : 0}%` }} />
+                          </div>
+                          <span className="flow-num">{heatToNeighbors.toFixed(0)}W</span>
+                        </div>
+                      )}
+                      {heatFromNeighbors > 0 && (
+                        <div className="flow-metric-row">
+                          <span className="flow-label">← From neighbors</span>
+                          <div className="flow-bar-track">
+                            <div className="flow-bar neighbors-in" style={{ width: `${totalOut > 0 ? (heatFromNeighbors / totalOut) * 100 : 0}%` }} />
+                          </div>
+                          <span className="flow-num">+{heatFromNeighbors.toFixed(0)}W</span>
+                        </div>
+                      )}
                     </div>
-                    <span className="flow-value">{data.power.toFixed(0)}W</span>
                   </div>
                 );
               })}
+            </div>
           </div>
+        </section>
+
+        {/* Alerts Section */}
+        <section className="alerts-section">
+          <div className="alerts-panel">
+            <h3>Alerts {aggregated.alerts.length > 0 && `(${aggregated.alerts.length})`}</h3>
+            <div className="alerts-list">
+              {aggregated.alerts.length > 0 ? aggregated.alerts.map((alert, i) => (
+                <div key={`${alert.roomId}-${i}`} className={`alert-item ${alert.severity}`}>
+                  <span className="alert-room">{alert.roomName}</span>
+                  <span className="alert-message">{alert.message}</span>
+                  <span className="alert-waste">-{(alert.estimatedWaste).toFixed(0)}W</span>
+                </div>
+              )) : (
+                <div className="no-alerts">No alerts</div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Thermal Estimation Panel */}
+        <section className="thermal-panel">
+          <div className="thermal-header">
+            <h2>Thermal Properties</h2>
+            <div className="thermal-controls">
+              <button
+                onClick={() => setShowThermalPanel(!showThermalPanel)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  background: showThermalPanel ? "#6366f1" : "#e5e7eb",
+                  color: showThermalPanel ? "#fff" : "#374151",
+                }}
+              >
+                {showThermalPanel ? "Hide" : "Show"}
+              </button>
+              {showThermalPanel && (
+                <button
+                  onClick={handleRunEstimation}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    background: "#10b981",
+                    color: "#fff",
+                    marginLeft: "8px",
+                  }}
+                >
+                  Re-run Estimation
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {showThermalPanel && (
+            <div className="thermal-content">
+              {thermalEstimation ? (
+                <>
+                  <div className="thermal-metrics">
+                    <div className="thermal-metric">
+                      <span className="metric-label">R² Score:</span>
+                      <span className="metric-value">{(thermalEstimation.r_squared * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="thermal-metric">
+                      <span className="metric-label">RMSE:</span>
+                      <span className="metric-value">{thermalEstimation.rmse.toFixed(3)}°C</span>
+                    </div>
+                  </div>
+                  
+                  <div className="thermal-rooms">
+                    <h3>Room Thermal Properties</h3>
+                    <div className="thermal-table">
+                      <div className="table-header">
+                        <span>Room</span>
+                      <span>Thermal Mass (kJ/K)</span>
+                      <span>Est. Heat Loss/hr</span>
+                    </div>
+                    {Object.entries(thermalEstimation.rooms).map(([roomId, params]) => {
+                      const roomName = building.floors
+                        .flatMap(f => f.rooms)
+                        .find(r => r.id === roomId)?.name || roomId;
+                      const roomTemp = metrics.rooms[roomId]?.temperature ?? 21;
+                      const extTemp = metrics.external_temp_c ?? 5;
+                      const tempDiff = Math.max(0, roomTemp - extTemp);
+                      const conductance = params.exterior_conductance_w_k ?? 0;
+                      const heatLossWatts = conductance * tempDiff;
+                      const costPerHour = (heatLossWatts / 1000) * 1.5 * 0.01; // 1.5 NOK/kWh, 0.01 is a factor
+                      
+                      return (
+                        <div key={roomId} className="table-row">
+                          <span className="room-name">{roomName}</span>
+                          <span>{(params.thermal_mass_j_k / 1000).toFixed(0)}</span>
+                          <span className={heatLossWatts > 50 ? "high-loss" : ""}>
+                            {heatLossWatts.toFixed(0)}W ({costPerHour.toFixed(2)}kr/h)
+                          </span>
+                        </div>
+                      );
+                    })}
+                    </div>
+                  </div>
+                  
+                  {Object.keys(thermalEstimation.conductances).length > 0 && (
+                    <div className="thermal-conductances">
+                      <h3>Wall Conductances</h3>
+                      <div className="conductance-bars">
+                        {Object.entries(thermalEstimation.conductances)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([key, conductance]) => (
+                            <div key={key} className="conductance-row">
+                              <span className="conductance-rooms">{key.replace(/-/g, " ↔ ")}</span>
+                              <div className="conductance-bar-container">
+                                <div
+                                  className="conductance-bar"
+                                  style={{ width: `${Math.min(100, conductance * 2)}%` }}
+                                />
+                              </div>
+                              <span className="conductance-value">{conductance.toFixed(1)} W/K</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="thermal-loading">
+                  <p>Collecting data... Need at least 10 ticks of history.</p>
+                  <p>Current time: {metrics.simulated_time ? new Date(metrics.simulated_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : `Tick ${metrics.tick}`}</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* Floor Plan Section */}
@@ -433,6 +636,7 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
               canvasWidth={900}
               canvasHeight={400}
               sunPosition={sunPosition}
+              heatFlows={metrics.heat_flows}
               onRoomHover={handleRoomHover}
             />
 
@@ -456,6 +660,9 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
           room={floor.rooms.find((r) => r.id === hoveredRoom.id)}
           x={hoveredRoom.x}
           y={hoveredRoom.y}
+          heatFlows={metrics.heat_flows}
+          thermalEstimation={thermalEstimation}
+          externalTemp={metrics.external_temp_c}
         />
       )}
     </div>
@@ -465,29 +672,145 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
 interface RoomTooltipProps {
   roomId: string;
   metrics: RoomMetrics | undefined;
-  room: { name: string } | undefined;
+  room: { id: string; name: string } | undefined;
   x: number;
   y: number;
+  heatFlows?: HeatFlow[];
+  thermalEstimation?: ThermalEstimationResult | null;
+  externalTemp?: number;
+  electricityPrice?: number;
 }
 
-function RoomTooltip({ metrics, room, x, y }: RoomTooltipProps) {
+function RoomTooltip({ metrics, room, x, y, heatFlows, thermalEstimation, externalTemp, electricityPrice }: RoomTooltipProps) {
   if (!metrics || !room) return null;
+
+  // Find heat flows involving this room
+  const roomHeatFlows = heatFlows?.filter(f => f.from_room === room.id || f.to_room === room.id) ?? [];
+  const heatGaining = roomHeatFlows.filter(f => f.to_room === room.id).reduce((sum, f) => sum + f.watts, 0);
+  const heatLosing = roomHeatFlows.filter(f => f.from_room === room.id).reduce((sum, f) => sum + f.watts, 0);
+  
+  // Get thermal params for this room
+  const thermalParams = thermalEstimation?.rooms[room.id];
+  const extConductance = thermalParams?.exterior_conductance_w_k ?? null;
+  const thermalMass = thermalParams?.thermal_mass_j_k ?? null;
+  
+  // Calculate estimated heat loss
+  let estimatedHeatLoss = 0;
+  let costPerHour = 0;
+  if (extConductance && externalTemp !== undefined) {
+    const tempDiff = Math.max(0, metrics.temperature - externalTemp);
+    estimatedHeatLoss = extConductance * tempDiff;
+    costPerHour = (estimatedHeatLoss / 1000) * 1.5; // 1.5 NOK/kWh
+  }
 
   return (
     <div className="tooltip" style={{ left: x + 10, top: y + 10 }}>
       <div className="tooltip-header">{room.name}</div>
-      <div className="tooltip-row">
-        <span>Temperature:</span>
-        <span>{metrics.temperature.toFixed(1)}°C</span>
+      <div className="tooltip-section">
+        <div className="tooltip-row">
+          <span>Temperature:</span>
+          <span>{metrics.temperature.toFixed(1)}°C</span>
+        </div>
+        <div className="tooltip-row">
+          <span>CO₂:</span>
+          <span>{metrics.co2.toFixed(0)} ppm</span>
+        </div>
+        <div className="tooltip-row">
+          <span>Heating:</span>
+          <span>{metrics.heating_power.toFixed(0)} W</span>
+        </div>
+        <div className="tooltip-row">
+          <span>Ventilation:</span>
+          <span>{metrics.ventilation_power.toFixed(0)} W</span>
+        </div>
       </div>
-      <div className="tooltip-row">
-        <span>CO₂:</span>
-        <span>{metrics.co2.toFixed(0)} ppm</span>
-      </div>
-      <div className="tooltip-row">
-        <span>Power:</span>
-        <span>{metrics.power.toFixed(0)} W</span>
-      </div>
+      
+      {thermalEstimation && (
+        <div className="tooltip-section">
+          <div className="tooltip-section-title">Estimated Properties</div>
+          {thermalMass && (
+            <div className="tooltip-row">
+              <span>Thermal Mass:</span>
+              <span>{(thermalMass / 1000).toFixed(0)} kJ/K</span>
+            </div>
+          )}
+          {extConductance && (
+            <div className="tooltip-row">
+              <span>Ext. Conductance:</span>
+              <span>{extConductance.toFixed(1)} W/K</span>
+            </div>
+          )}
+          {estimatedHeatLoss > 0 && (
+            <div className="tooltip-row highlight-loss">
+              <span>Est. Heat Loss:</span>
+              <span>{estimatedHeatLoss.toFixed(0)} W ({costPerHour.toFixed(2)} kr/h)</span>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Predictions section */}
+      {metrics.predicted_temp_30min !== undefined && (
+        <div className="tooltip-section">
+          <div className="tooltip-section-title">
+            Predicted Temperature
+            {metrics.uses_estimated_params && <span className="param-badge">estimated</span>}
+            {!metrics.uses_estimated_params && <span className="param-badge geometry">geometry</span>}
+          </div>
+          <div className="tooltip-row">
+            <span>30 min:</span>
+            <span className="prediction">{metrics.predicted_temp_30min.toFixed(1)}°C</span>
+          </div>
+          <div className="tooltip-row">
+            <span>1 hour:</span>
+            <span className="prediction">{metrics.predicted_temp_1h?.toFixed(1) ?? "-"}°C</span>
+          </div>
+          <div className="tooltip-row">
+            <span>2 hours:</span>
+            <span className="prediction">{metrics.predicted_temp_2h?.toFixed(1) ?? "-"}°C</span>
+          </div>
+          {metrics.prediction_uncertainty !== undefined && metrics.prediction_uncertainty > 1.5 && (
+            <div className="tooltip-row warning">
+              <span>Uncertainty:</span>
+              <span>±{metrics.prediction_uncertainty.toFixed(1)}°C</span>
+            </div>
+          )}
+          {metrics.prediction_warnings && metrics.prediction_warnings.length > 0 && (
+            <div className="tooltip-row warning">
+              <span>Warning:</span>
+              <span>{metrics.prediction_warnings.join(", ")}</span>
+            </div>
+          )}
+          {/* Predicted cost */}
+          {electricityPrice && metrics.predicted_temp_1h && metrics.predicted_temp_1h < 20.5 && (
+            <div className="tooltip-row highlight-cost">
+              <span>Est. cost (1h):</span>
+              <span>
+                {(((metrics.predicted_temp_1h < metrics.temperature ? 500 : 100) / 1000) * electricityPrice * 1).toFixed(2)} kr
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {roomHeatFlows.length > 0 && (
+        <div className="tooltip-section">
+          <div className="tooltip-section-title">Heat Flows</div>
+          {heatGaining > 0 && (
+            <div className="tooltip-row heat-gain">
+              <span>From neighbors:</span>
+              <span>+{heatGaining.toFixed(0)} W</span>
+            </div>
+          )}
+          {heatLosing > 0 && (
+            <div className="tooltip-row heat-loss">
+              <span>To neighbors:</span>
+              <span>-{heatLosing.toFixed(0)} W</span>
+            </div>
+          )}
+        </div>
+      )}
+      
       {(metrics.waste_patterns?.length ?? 0) > 0 && (
         <div className="tooltip-waste">
           Issue: {metrics.waste_patterns!.map(p => p.replace(/_/g, " ")).join(", ")}

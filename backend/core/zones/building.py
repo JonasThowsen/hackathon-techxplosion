@@ -1,7 +1,7 @@
 """BuildingZone - top-level zone aggregating all floors."""
 
 from collections import defaultdict
-from typing import override
+from typing import TYPE_CHECKING, override
 
 from analysis.adjacency import find_adjacent_rooms, find_vertical_neighbours
 from core.models import BuildingLayout, HeatFlow, MetricsUpdate, RoomMetrics
@@ -25,6 +25,9 @@ from core.zones.patterns import (
     waste_pattern_id,
 )
 from data.weather import external_temp_at_tick
+
+if TYPE_CHECKING:
+    from services.prediction import PredictionResult
 
 _BASELINE_TEMPERATURE_C = 21.0
 _GOOD_AIR_QUALITY_CO2_PPM = 900.0
@@ -196,14 +199,43 @@ class BuildingZone(EnergyZone):
         self,
         room_metrics: dict[str, Metrics],
         waste_patterns: list[WastePattern],
+        predictions: PredictionResult | None = None,
     ) -> list[Action]:
         actions: list[Action] = []
         acted_rooms: set[str] = set()
 
-        # Comfort recovery: if rooms drift too far below baseline, boost heating.
-        # But skip the boost if the room is already receiving significant free
-        # heat from neighbours (heat bleed working in our favour).
+        # Predictive control: use predictions when available
+        if predictions and predictions.predictions:
+            for room_id, metrics in room_metrics.items():
+                pred = predictions.predictions.get(room_id)
+                if pred is None:
+                    continue
+
+                # Skip if prediction has high uncertainty
+                if "high_uncertainty" in pred.warnings:
+                    continue
+
+                # Pre-emptive heating: predict cold in 30-60 min
+                if pred.will_be_cold and metrics.occupancy:
+                    inflow = self._net_heat_inflow_w(room_id, room_metrics)
+                    if inflow < _SIGNIFICANT_INFLOW_W:
+                        actions.append(BoostHeating(target_device=room_id))
+                        acted_rooms.add(room_id)
+                        continue
+
+                # Pre-emptive reduction: predict hot AND receiving significant heat from neighbor
+                if pred.will_be_hot:
+                    inflow = self._net_heat_inflow_w(room_id, room_metrics)
+                    if inflow > _SIGNIFICANT_INFLOW_W and not metrics.occupancy:
+                        actions.append(ReduceHeating(target_device=room_id))
+                        acted_rooms.add(room_id)
+                        continue
+
+        # Fallback: reactive control for rooms not handled predictively
         for room_id, metrics in room_metrics.items():
+            if room_id in acted_rooms:
+                continue
+
             if (
                 metrics.occupancy
                 and metrics.temperature <= _BASELINE_TEMPERATURE_C - _COLD_MARGIN_C
@@ -289,11 +321,11 @@ class BuildingZone(EnergyZone):
         waste_patterns = self._identify_waste_from_metrics(room_metrics)
         return self._actions_from_metrics(room_metrics, waste_patterns)
 
-    def to_metrics_update(self, tick: int) -> MetricsUpdate:
+    def to_metrics_update(self, tick: int, predictions: PredictionResult | None = None) -> MetricsUpdate:
         """Generate a MetricsUpdate for the WebSocket stream."""
         room_metrics = self._collect_room_metrics()
         waste_patterns = self._identify_waste_from_metrics(room_metrics)
-        actions = self._actions_from_metrics(room_metrics, waste_patterns)
+        actions = self._actions_from_metrics(room_metrics, waste_patterns, predictions)
 
         patterns_by_room: dict[str, list[str]] = defaultdict(list)
         for pattern in waste_patterns:
@@ -315,6 +347,8 @@ class BuildingZone(EnergyZone):
         rooms: dict[str, RoomMetrics] = {}
 
         for room_id, metrics in room_metrics.items():
+            pred = predictions.predictions.get(room_id) if predictions and predictions.predictions else None
+
             rooms[room_id] = RoomMetrics(
                 temperature=metrics.temperature,
                 occupancy=metrics.occupancy,
@@ -323,6 +357,12 @@ class BuildingZone(EnergyZone):
                 ventilation_power=metrics.ventilation_power,
                 waste_patterns=patterns_by_room.get(room_id, []),
                 actions=actions_by_room.get(room_id, []),
+                predicted_temp_30min=pred.predicted_temps[0] if pred and len(pred.predicted_temps) > 0 else None,
+                predicted_temp_1h=pred.predicted_temps[1] if pred and len(pred.predicted_temps) > 1 else None,
+                predicted_temp_2h=pred.predicted_temps[2] if pred and len(pred.predicted_temps) > 2 else None,
+                prediction_uncertainty=pred.uncertainty if pred else None,
+                prediction_warnings=pred.warnings if pred else [],
+                uses_estimated_params=pred.uses_estimated_params if pred else False,
             )
 
         heat_flows: list[HeatFlow] = []

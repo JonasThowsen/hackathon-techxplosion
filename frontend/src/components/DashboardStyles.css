@@ -68,7 +68,7 @@
   padding: 1.5rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 /* Summary Cards */
@@ -76,6 +76,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 1rem;
+  min-height: 90px;
 }
 
 .card {
@@ -133,39 +134,60 @@
 /* Info Row */
 .info-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr 2.5fr;
+  gap: 0.75rem;
+  min-height: 300px;
+  max-height: 500px;
+}
+
+/* Alerts Section */
+.alerts-section {
+  min-height: 60px;
 }
 
 /* Alerts Panel */
 .alerts-panel {
   background: var(--bg-card);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.75rem;
   border-left: 3px solid #ff6b6b;
+  min-height: 50px;
+  max-height: 150px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .alerts-panel h3 {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--text-secondary);
 }
 
 .alerts-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.no-alerts {
+  color: #555;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 1rem;
 }
 
 .alert-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
+  gap: 0.4rem;
+  padding: 0.25rem 0.4rem;
   background: rgba(255, 107, 107, 0.08);
-  border-radius: 4px;
-  font-size: 0.8rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
 }
 
 .alert-item.critical {
@@ -174,55 +196,65 @@
 
 .alert-item .alert-room {
   font-weight: 600;
-  min-width: 80px;
+  min-width: 60px;
+  font-size: 0.65rem;
 }
 
 .alert-item .alert-message {
   flex: 1;
   color: var(--text-secondary);
+  font-size: 0.65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .alert-item .alert-waste {
   font-family: monospace;
   color: #ff6b6b;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
 }
 
 /* Event Feed */
 .event-feed {
   background: var(--bg-card);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.75rem;
   border-left: 3px solid #4a9eff;
+  min-height: 200px;
+  max-height: 480px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .event-feed h3 {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   color: var(--text-secondary);
 }
 
 .event-empty {
   color: #555;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .event-list {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  max-height: 250px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .event-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.5rem;
+  gap: 0.4rem;
+  padding: 0.25rem 0.4rem;
   border-radius: 3px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
 }
 
 .event-item.waste { background: rgba(255, 107, 107, 0.08); }
@@ -244,48 +276,138 @@
   color: var(--text-secondary);
 }
 
-/* Energy Flow */
-.energy-flow {
+/* Heat Flow Analysis */
+.info-row .flow-metrics {
   background: var(--bg-card);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.5rem;
+  border-left: 3px solid #ffc107;
+  min-height: 250px;
+  max-height: 480px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.energy-flow h2 {
-  font-size: 0.85rem;
+.info-row .flow-metrics h3 {
+  font-size: 0.75rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
+  color: var(--text-secondary);
+}
+
+.flow-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.4rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.flow-metric-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  padding: 0.35rem;
+  font-size: 0.6rem;
+}
+
+.flow-metric-header {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: #fff;
+}
+
+.flow-metric-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.flow-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.flow-label {
+  width: 55px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.flow-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #1a1a2e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.flow-bar-track .flow-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.flow-bar.heating {
+  background: #4a9eff;
+}
+
+.flow-bar.outside {
+  background: #ff6b6b;
+}
+
+.flow-bar.neighbors-out {
+  background: #ffb74d;
+}
+
+.flow-bar.neighbors-in {
+  background: #64b5f6;
+}
+
+.flow-num {
+  width: 32px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 0.55rem;
   color: var(--text-secondary);
 }
 
 .flow-bars {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .flow-bar-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  min-height: 16px;
 }
 
 .flow-room {
-  width: 90px;
-  font-size: 0.75rem;
+  width: 55px;
+  font-size: 0.6rem;
   color: var(--text-secondary);
   text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .flow-bar-container {
   flex: 1;
-  height: 14px;
+  min-width: 30px;
+  max-width: calc(100% - 50px);
+  height: 10px;
   background: #1a1a2e;
   border-radius: 2px;
   overflow: hidden;
+  position: relative;
 }
 
 .flow-bar {
@@ -299,11 +421,13 @@
 }
 
 .flow-value {
-  width: 50px;
-  font-size: 0.7rem;
+  width: 42px;
+  min-width: 42px;
+  font-size: 0.6rem;
   font-family: monospace;
   text-align: right;
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 /* Floor Plan Section */
@@ -339,6 +463,162 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Thermal Panel */
+.thermal-panel {
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #6366f1;
+}
+
+.thermal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.thermal-header h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a5b4fc;
+}
+
+.thermal-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.thermal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.thermal-metrics {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.thermal-metric {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.thermal-metric .metric-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.thermal-metric .metric-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  font-family: monospace;
+}
+
+.thermal-rooms h3,
+.thermal-conductances h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.thermal-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #2a2a3e;
+}
+
+.table-row .room-name {
+  font-weight: 500;
+}
+
+.conductance-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.conductance-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.conductance-rooms {
+  width: 120px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conductance-bar-container {
+  flex: 1;
+  height: 12px;
+  background: #1a1a2e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.conductance-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 2px;
+}
+
+.conductance-value {
+  width: 80px;
+  font-size: 0.7rem;
+  font-family: monospace;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.thermal-loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.thermal-loading p {
+  margin: 0.5rem 0;
+}
+
+.table-row .high-loss {
+  color: #ff6b6b;
+  font-weight: 600;
 }
 
 /* Responsive */

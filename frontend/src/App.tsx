@@ -4,6 +4,7 @@ import { FloorPlanEditor } from "./components/FloorPlanEditor";
 import { Dashboard } from "./components/Dashboard";
 import { useBuilding } from "./hooks/useBuilding";
 import { useMetrics } from "./hooks/useMetrics";
+import { useElectricityPrice } from "./hooks/useElectricityPrice";
 import "./App.css";
 import "./components/EditorStyles.css";
 import "./components/DashboardStyles.css";
@@ -41,6 +42,7 @@ function App() {
   const [mode, setMode] = useState<AppMode>("dashboard");
   const { building, loading, error: buildingError } = useBuilding(USE_MOCK);
   const { metrics, connected } = useMetrics(USE_MOCK);
+  const { price } = useElectricityPrice();
   const sunPosition = useSunPosition();
 
   if (loading) {
@@ -69,6 +71,7 @@ function App() {
       sunPosition={sunPosition}
       onOpenEditor={() => setMode("editor")}
       connected={connected}
+      electricityPrice={price?.price_nok_per_kwh}
     />
   );
 }
