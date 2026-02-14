@@ -529,8 +529,9 @@ Run both together, verify live data end-to-end.
 *** Jonas (Backend)
 - [ ] Implement =WS /ws= endpoint, push MetricsUpdate every 2-3 seconds
 - [ ] Generate simulated sensor data that drifts over time (not static)
-- [ ] Add CORS config so frontend can connect from different port
+- [X] Add CORS config so frontend can connect from different port
 - [ ] Integration check: both running, data flows end-to-end
+- [ ] Add events for sensors that use actions based on analysis
 - [X] Create sensor types and EnergyZone ABC
 - [X] Implement Room/Floor/Building EnergyZone hierarchy
 - [X] Build simulation engine with waste scenarios
