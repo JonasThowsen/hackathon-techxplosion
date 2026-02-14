@@ -1,7 +1,11 @@
+"""BuildingZone - top-level zone aggregating all floors."""
+
+from typing import override
+
 from analysis import calculate_heat_flows, find_adjacent_rooms, net_heat_flow_by_room
-from energy_zone import Action, EnergyZone, Metrics, WastePattern, waste_pattern_id
-from floor_zone import FloorZone
-from models import BuildingLayout, MetricsUpdate, Room, RoomMetrics
+from core.models import BuildingLayout, MetricsUpdate, Room, RoomMetrics
+from core.zones.base import Action, EnergyZone, Metrics, WastePattern, waste_pattern_id
+from core.zones.floor import FloorZone
 
 
 class BuildingZone(EnergyZone):
@@ -11,6 +15,7 @@ class BuildingZone(EnergyZone):
         self.layout = layout
         self.floors = floors
 
+    @override
     def collect_metrics(self) -> Metrics:
         if not self.floors:
             return Metrics(temperature=0.0, occupancy=False, co2=0.0, power=0.0)
@@ -24,12 +29,14 @@ class BuildingZone(EnergyZone):
             power=sum(m.power for m in floor_metrics),
         )
 
+    @override
     def identify_waste(self) -> list[WastePattern]:
         patterns: list[WastePattern] = []
         for floor in self.floors:
             patterns.extend(floor.identify_waste())
         return patterns
 
+    @override
     def act(self) -> list[Action]:
         actions: list[Action] = []
         for floor in self.floors:
@@ -37,7 +44,7 @@ class BuildingZone(EnergyZone):
         return actions
 
     def to_metrics_update(self, tick: int) -> MetricsUpdate:
-        # Collect per-room metrics and waste patterns
+        """Generate a MetricsUpdate for the WebSocket stream."""
         room_metrics_map: dict[str, Metrics] = {}
         room_waste_map: dict[str, list[WastePattern]] = {}
         rooms: dict[str, RoomMetrics] = {}

@@ -1,4 +1,10 @@
-from energy_zone import (
+"""RoomZone - atomic energy zone wrapping a single room."""
+
+from typing import override
+
+from core.models import Room
+from core.sensors import Sensor, SensorKind
+from core.zones.base import (
     Action,
     AppliancesStandby,
     CutPower,
@@ -9,8 +15,6 @@ from energy_zone import (
     ReduceHeating,
     WastePattern,
 )
-from models import Room
-from sensors import Sensor, SensorKind
 
 
 class RoomZone(EnergyZone):
@@ -24,6 +28,7 @@ class RoomZone(EnergyZone):
     def _readings_by_kind(self, kind: SensorKind) -> list[float]:
         return [s.value for s in self.sensors if s.kind == kind]
 
+    @override
     def collect_metrics(self) -> Metrics:
         temps = self._readings_by_kind(SensorKind.TEMPERATURE)
         occ = self._readings_by_kind(SensorKind.OCCUPANCY)
@@ -39,6 +44,7 @@ class RoomZone(EnergyZone):
         self._last_metrics = metrics
         return metrics
 
+    @override
     def identify_waste(self) -> list[WastePattern]:
         m = self._last_metrics
         if m is None:
@@ -75,6 +81,7 @@ class RoomZone(EnergyZone):
 
         return patterns
 
+    @override
     def act(self) -> list[Action]:
         actions: list[Action] = []
         for waste in self.identify_waste():

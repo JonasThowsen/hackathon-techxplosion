@@ -1,4 +1,6 @@
-from models import BuildingLayout, Floor, Room
+"""Sample building layout for testing."""
+
+from core.models import BuildingLayout, Floor, Room
 
 
 def create_sample_building() -> BuildingLayout:

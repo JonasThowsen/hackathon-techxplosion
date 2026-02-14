@@ -1,18 +1,18 @@
+"""FastAPI entry point - thin layer over the domain."""
+
 import asyncio
 import dataclasses
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from building_zone import BuildingZone
-from floor_zone import FloorZone
-from models import BuildingLayout
-from room_zone import RoomZone
-from sample_building import SAMPLE_BUILDING
-from sensors import Sensor
+from core.models import BuildingLayout
+from core.sensors import Sensor
+from core.zones import BuildingZone, FloorZone, RoomZone
+from data import SAMPLE_BUILDING
 from simulation import place_sensors, simulate_tick
 
-app = FastAPI(title="Energy Waste Detection API")
+app = FastAPI(title="FlowMetrics API")
 
 app.add_middleware(
     CORSMiddleware,

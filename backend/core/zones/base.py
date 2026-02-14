@@ -1,9 +1,13 @@
+"""EnergyZone abstract base class and associated types."""
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
 @dataclass
 class Metrics:
+    """Aggregated metrics at any level of the zone hierarchy."""
+
     temperature: float
     occupancy: bool
     co2: float
@@ -76,6 +80,11 @@ class CutPower:
 
 
 type Action = ReduceHeating | CutPower
+
+
+# ---------------------------------------------------------------------------
+# Abstract base class
+# ---------------------------------------------------------------------------
 
 
 class EnergyZone(ABC):

@@ -457,6 +457,15 @@ For each suggested fix, estimate:
 - Physics-based simulation of the building
 - Test control strategies in simulation before deploying
 
+
+** Node-edge analysis
+Compute where heat or air quality goes.
+Things we know:
+- Heat production and the power cost
+- Room temperature
+Things we dont know:
+- How conductive walls are
+- If windows or doors are open
 * Tasks
 ** DONE Set up project skeleton
 - [X] Setup frontend (Vite + React + TS)
@@ -500,11 +509,11 @@ Run both together, verify live data end-to-end.
 * Timeline
 ** Friday evening
 *** Dany (Frontend)
-- [ ] Create TypeScript types matching the contract (BuildingLayout, MetricsUpdate)
-- [ ] Build FloorGrid canvas component that takes a floor + metrics and draws polygons
-- [ ] Hardcode mock BuildingLayout in frontend to test rendering without backend
-- [ ] Color rooms with a basic heatmap color function (blue cold → red hot)
-- [ ] Verify rooms draw correctly, walls visible, no overlaps
+- [X] Create TypeScript types matching the contract (BuildingLayout, MetricsUpdate)
+- [X] Build FloorGrid canvas component that takes a floor + metrics and draws polygons
+- [X] Hardcode mock BuildingLayout in frontend to test rendering without backend
+- [X] Color rooms with a basic heatmap color function (blue cold → red hot)
+- [X] Verify rooms draw correctly, walls visible, no overlaps
 *** Jonas (Backend)
 - [X] Add FastAPI + uvicorn + websockets to dependencies
 - [X] Create Pydantic models matching the contract (BuildingLayout, MetricsUpdate)
@@ -513,10 +522,10 @@ Run both together, verify live data end-to-end.
 - [X] Test with curl / browser that the JSON looks right
 ** Saturday morning
 *** Dany (Frontend)
-- [ ] Replace mock data with =fetch("/building")= call on mount
-- [ ] Connect to =WS /ws=, parse MetricsUpdate messages
-- [ ] Merge incoming metrics into stored geometry, re-render canvas on each tick
-- [ ] Add floor selector (tabs or buttons)
+- [X] Replace mock data with =fetch("/building")= call on mount
+- [X] Connect to =WS /ws=, parse MetricsUpdate messages
+- [X] Merge incoming metrics into stored geometry, re-render canvas on each tick
+- [X] Add floor selector (tabs or buttons)
 *** Jonas (Backend)
 - [ ] Implement =WS /ws= endpoint, push MetricsUpdate every 2-3 seconds
 - [ ] Generate simulated sensor data that drifts over time (not static)

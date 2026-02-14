@@ -1,3 +1,5 @@
+"""Sensor types and readings."""
+
 from dataclasses import dataclass
 from enum import StrEnum
 

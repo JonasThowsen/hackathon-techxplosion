@@ -1,3 +1,5 @@
+"""Core data models for the building energy system."""
+
 from dataclasses import dataclass, field
 
 

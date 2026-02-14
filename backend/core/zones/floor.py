@@ -1,6 +1,10 @@
-from energy_zone import Action, EnergyZone, Metrics, WastePattern
-from models import Floor
-from room_zone import RoomZone
+"""FloorZone - aggregates RoomZones on the same floor."""
+
+from typing import override
+
+from core.models import Floor
+from core.zones.base import Action, EnergyZone, Metrics, WastePattern
+from core.zones.room import RoomZone
 
 
 class FloorZone(EnergyZone):
@@ -10,6 +14,7 @@ class FloorZone(EnergyZone):
         self.floor = floor
         self.rooms = rooms
 
+    @override
     def collect_metrics(self) -> Metrics:
         if not self.rooms:
             return Metrics(temperature=0.0, occupancy=False, co2=0.0, power=0.0)
@@ -23,12 +28,14 @@ class FloorZone(EnergyZone):
             power=sum(m.power for m in room_metrics),
         )
 
+    @override
     def identify_waste(self) -> list[WastePattern]:
         patterns: list[WastePattern] = []
         for room in self.rooms:
             patterns.extend(room.identify_waste())
         return patterns
 
+    @override
     def act(self) -> list[Action]:
         actions: list[Action] = []
         for room in self.rooms:
