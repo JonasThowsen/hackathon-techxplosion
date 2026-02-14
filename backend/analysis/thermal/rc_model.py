@@ -10,14 +10,21 @@ In discrete form with timestep dt:
     T(t+1) = T(t) + (dt/C) * [P(t) + Σ G_j * (T_j(t) - T(t))]
 
 This can be rearranged into linear regression form for parameter estimation.
+
+Also provides first-principles parameter estimation from geometry.
 """
 
 from dataclasses import dataclass
+from typing import TypedDict
 
 import numpy as np
 from numpy.typing import NDArray
 
-from analysis.thermal.types import ThermalGraph, ThermalParameters
+from analysis.thermal.types import (
+    RoomParameters,
+    ThermalGraph,
+    ThermalParameters,
+)
 
 
 def predict_temperature_change(
@@ -347,3 +354,208 @@ def predict_building_temperature(
         heating_powers=heating_schedule,
         external_temps=external_temps,
     )
+
+
+# -----------------------------------------------------------------------------
+# First-Principles Parameter Estimation
+# -----------------------------------------------------------------------------
+
+
+@dataclass
+class UValuesNorway:
+    """U-values (W/m²·K) for Norwegian public buildings."""
+
+    facade_incl_windows: float = 0.40
+    opaque_wall_only: float = 0.17
+    window_only: float = 0.90
+    roof: float = 0.13
+    internal_wall: float = 2.0
+    internal_to_unheated: float = 0.35
+
+    def for_wall(self, wall_type: str) -> float:
+        """Get U-value for wall type."""
+        mapping = {
+            "exterior": self.facade_incl_windows,
+            "opaque": self.opaque_wall_only,
+            "window": self.window_only,
+            "roof": self.roof,
+            "internal": self.internal_wall,
+            "unheated": self.internal_to_unheated,
+        }
+        return mapping.get(wall_type, self.facade_incl_windows)
+
+
+class RoomGeometry:
+    """Room geometry for first-principles calculations."""
+
+    room_id: str
+    floor_area_m2: float
+    wall_area_m2: float
+    window_area_m2: float
+    ceiling_height_m: float
+    is_exterior: bool
+    neighbor_ids: list[str]
+
+    def __init__(
+        self,
+        room_id: str,
+        floor_area_m2: float,
+        wall_area_m2: float,
+        window_area_m2: float = 0.0,
+        ceiling_height_m: float = 3.0,
+        is_exterior: bool = True,
+        neighbor_ids: list[str] | None = None,
+    ) -> None:
+        self.room_id = room_id
+        self.floor_area_m2 = floor_area_m2
+        self.wall_area_m2 = wall_area_m2
+        self.window_area_m2 = window_area_m2
+        self.ceiling_height_m = ceiling_height_m
+        self.is_exterior = is_exterior
+        self.neighbor_ids = neighbor_ids or []
+
+
+def estimate_thermal_mass(
+    floor_area_m2: float,
+    ceiling_height_m: float = 3.0,
+    occupancy: str = "medium",
+) -> float:
+    """Estimate thermal mass from room geometry.
+
+    Based on typical heat capacity of:
+    - Air: ~1.2 kJ/m³·K
+    - Furniture/contents: ~50-100 kJ/m² floor area
+    - Building structure: depends on construction
+
+    Args:
+        floor_area_m2: Floor area in m²
+        ceiling_height_m: Ceiling height in meters
+        occupancy: "light", "medium", or "heavy" (furnishings)
+
+    Returns:
+        Thermal mass in J/K
+    """
+    volume = floor_area_m2 * ceiling_height_m
+
+    air_mass_j_k = volume * 1200.0
+
+    furnishing_mass = {
+        "light": 20_000,
+        "medium": 50_000,
+        "heavy": 100_000,
+    }
+    furnishing_mass_j_k = floor_area_m2 * furnishing_mass[occupancy]
+
+    structure_mass_j_k = floor_area_m2 * ceiling_height_m * 500.0
+
+    return air_mass_j_k + furnishing_mass_j_k + structure_mass_j_k
+
+
+def estimate_conductance(
+    area_m2: float,
+    u_value: float,
+) -> float:
+    """Estimate thermal conductance from area and U-value.
+
+    G = U * A (W/K)
+
+    Args:
+        area_m2: Wall/area in m²
+        u_value: U-value in W/m²·K
+
+    Returns:
+        Conductance in W/K
+    """
+    return area_m2 * u_value
+
+
+def compute_conductance_from_rooms(
+    rooms: list[RoomGeometry],
+    u_values: UValuesNorway | None = None,
+) -> tuple[dict[str, float], dict[tuple[str, str], float]]:
+    """Compute conductance parameters from room geometry.
+
+    Args:
+        rooms: List of room geometries
+        u_values: U-values to use (defaults to Norwegian standards)
+
+    Returns:
+        Tuple of (room_thermal_mass dict, conductance dict)
+    """
+    if u_values is None:
+        u_values = UValuesNorway()
+
+    room_masses: dict[str, float] = {}
+    conductances: dict[tuple[str, str], float] = {}
+
+    room_by_id = {r.room_id: r for r in rooms}
+
+    for room in rooms:
+        mass = estimate_thermal_mass(room.floor_area_m2, room.ceiling_height_m)
+        room_masses[room.room_id] = mass
+
+        if room.is_exterior:
+            opaque_area = room.wall_area_m2 - room.window_area_m2
+            g_wall = estimate_conductance(opaque_area, u_values.opaque_wall_only)
+            g_window = estimate_conductance(room.window_area_m2, u_values.window_only)
+            total_ext = g_wall + g_window
+            conductances[(room.room_id, "exterior")] = total_ext
+
+        for neighbor_id in room.neighbor_ids:
+            if neighbor_id == "exterior" or neighbor_id not in room_by_id:
+                continue
+
+            neighbor = room_by_id[neighbor_id]
+            avg_area = (room.wall_area_m2 + neighbor.wall_area_m2) / 2
+            g_internal = estimate_conductance(avg_area / 2, u_values.internal_wall)
+
+            pair = sorted([room.room_id, neighbor_id])
+            key: tuple[str, str] = (pair[0], pair[1])
+            if key in conductances:
+                conductances[key] = (conductances[key] + g_internal) / 2
+            else:
+                conductances[key] = g_internal
+
+    return room_masses, conductances
+
+
+class FirstPrinciplesParameters(TypedDict):
+    """Parameters computed from first principles."""
+
+    thermal_mass: dict[str, float]
+    conductances: dict[tuple[str, str], float]
+
+
+def create_parameters_from_geometry(
+    rooms: list[RoomGeometry],
+    u_values: UValuesNorway | None = None,
+) -> ThermalParameters:
+    """Create ThermalParameters from room geometry.
+
+    This provides sensible defaults without requiring any data collection
+    or parameter estimation. Useful for:
+    - Initial baseline predictions
+    - Quick what-if analysis
+    - Validation against estimated parameters
+
+    Args:
+        rooms: List of room geometries
+        u_values: U-values to use (defaults to Norwegian standards)
+
+    Returns:
+        ThermalParameters ready for prediction
+    """
+    if u_values is None:
+        u_values = UValuesNorway()
+
+    room_masses, conductance_dict = compute_conductance_from_rooms(rooms, u_values)
+
+    rooms_params: dict[str, RoomParameters] = {}
+    for room in rooms:
+        ext_g = conductance_dict.get((room.room_id, "exterior"))
+        rooms_params[room.room_id] = RoomParameters(
+            thermal_mass=room_masses[room.room_id],
+            exterior_conductance=ext_g,
+        )
+
+    return ThermalParameters(rooms=rooms_params, conductances=conductance_dict)
