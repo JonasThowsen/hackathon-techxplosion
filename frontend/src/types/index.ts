@@ -30,22 +30,38 @@ export interface BuildingLayout {
 export type WastePattern =
   | "empty_room_heating_on"
   | "open_window_heating"
-  | "appliances_standby"
   | "over_heating"
-  | "empty_ventilation";
+  | "excessive_ventilation";
+
+export type ActionType =
+  | "reduce_heating"
+  | "boost_heating"
+  | "reduce_ventilation"
+  | "open_window_alert";
 
 export interface RoomMetrics {
   temperature: number;
   occupancy: boolean;
   co2: number;
-  power: number;
-  waste_patterns: WastePattern[];
-  heat_flow?: number; // Net heat gain/loss in watts (positive = gaining heat)
+  heating_power: number;
+  ventilation_power: number;
+  power: number; // computed: heating_power + ventilation_power
+  waste_patterns?: WastePattern[];
+  actions?: ActionType[];
+}
+
+export interface HeatFlow {
+  from_room: string;
+  to_room: string;
+  watts: number;
 }
 
 export interface MetricsUpdate {
   tick: number;
   rooms: Record<string, RoomMetrics>;
+  heat_flows?: HeatFlow[];
+  system_enabled?: boolean;
+  sun_enabled?: boolean;
 }
 
 // UI state types

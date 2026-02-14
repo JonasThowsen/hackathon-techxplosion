@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import type { MetricsUpdate } from "../types";
+import type { MetricsUpdate, WastePattern, ActionType } from "../types";
 
 export interface Event {
   id: number;
@@ -22,6 +22,33 @@ export function EventFeed({ metrics, maxEvents = 10 }: EventFeedProps) {
 
   useEffect(() => {
     if (!prevMetrics.current) {
+      const initialEvents: Event[] = [];
+      for (const [roomId, data] of Object.entries(metrics.rooms)) {
+        for (const pattern of data.waste_patterns ?? []) {
+          initialEvents.push({
+            id: eventId++,
+            time: new Date(),
+            type: "waste",
+            message: formatWasteMessage(pattern, roomId),
+            roomId,
+          });
+        }
+
+        for (const action of data.actions ?? []) {
+          initialEvents.push({
+            id: eventId++,
+            time: new Date(),
+            type: "action",
+            message: formatActionMessage(action, roomId),
+            roomId,
+          });
+        }
+      }
+
+      if (initialEvents.length > 0) {
+        setEvents(initialEvents.slice(0, maxEvents));
+      }
+
       prevMetrics.current = metrics;
       return;
     }
@@ -34,9 +61,14 @@ export function EventFeed({ metrics, maxEvents = 10 }: EventFeedProps) {
       const prevData = prev[roomId];
       if (!prevData) continue;
 
+      const currPatterns = data.waste_patterns ?? [];
+      const prevPatterns = prevData.waste_patterns ?? [];
+      const currActions = data.actions ?? [];
+      const prevActions = prevData.actions ?? [];
+
       // New waste pattern detected
-      for (const pattern of data.waste_patterns) {
-        if (!prevData.waste_patterns.includes(pattern)) {
+      for (const pattern of currPatterns) {
+        if (!prevPatterns.includes(pattern)) {
           newEvents.push({
             id: eventId++,
             time: new Date(),
@@ -48,13 +80,26 @@ export function EventFeed({ metrics, maxEvents = 10 }: EventFeedProps) {
       }
 
       // Waste pattern resolved
-      for (const pattern of prevData.waste_patterns) {
-        if (!data.waste_patterns.includes(pattern)) {
+      for (const pattern of prevPatterns) {
+        if (!currPatterns.includes(pattern)) {
           newEvents.push({
             id: eventId++,
             time: new Date(),
             type: "resolved",
             message: `${roomId}: ${formatPatternName(pattern)} resolved`,
+            roomId,
+          });
+        }
+      }
+
+      // New action issued
+      for (const action of currActions) {
+        if (!prevActions.includes(action)) {
+          newEvents.push({
+            id: eventId++,
+            time: new Date(),
+            type: "action",
+            message: formatActionMessage(action, roomId),
             roomId,
           });
         }
@@ -119,21 +164,32 @@ function getIcon(type: Event["type"]): string {
   }
 }
 
-function formatPatternName(pattern: string): string {
+function formatPatternName(pattern: WastePattern): string {
   return pattern.replace(/_/g, " ");
 }
 
-function formatWasteMessage(pattern: string, roomId: string): string {
+function formatWasteMessage(pattern: WastePattern, roomId: string): string {
   switch (pattern) {
     case "empty_room_heating_on":
-      return `${roomId}: Heating inefficiency`;
+      return `${roomId}: Heating running in empty room`;
     case "open_window_heating":
-      return `${roomId}: Heat loss detected`;
+      return `${roomId}: Window likely open - heating wasted`;
     case "over_heating":
-      return `${roomId}: Excess heating`;
-    case "appliances_standby":
-      return `${roomId}: Standby power draw`;
-    default:
-      return `${roomId}: ${formatPatternName(pattern)}`;
+      return `${roomId}: Excess heating detected`;
+    case "excessive_ventilation":
+      return `${roomId}: Ventilation running unnecessarily in empty room`;
+  }
+}
+
+function formatActionMessage(action: ActionType, roomId: string): string {
+  switch (action) {
+    case "boost_heating":
+      return `${roomId}: Boosting heating to recover 21°C baseline`;
+    case "reduce_heating":
+      return `${roomId}: Lowered heating to hold 21°C baseline`;
+    case "reduce_ventilation":
+      return `${roomId}: Reducing ventilation in empty room`;
+    case "open_window_alert":
+      return `${roomId}: Open window detected - reducing heating`;
   }
 }

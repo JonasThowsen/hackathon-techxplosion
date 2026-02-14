@@ -22,6 +22,15 @@ class WallConfig:
 
 
 @dataclass
+class WindowConfig:
+    """A window on an exterior wall."""
+
+    orientation: str  # "N", "S", "E", "W"
+    area_m2: float
+    transmittance: float = 0.6  # fraction of solar energy passing through
+
+
+@dataclass
 class HVACConfig:
     """HVAC system properties for a room."""
 
@@ -42,6 +51,7 @@ class RoomPhysicsConfig:
     # Approximation: air + furnishings, typically 3-5x air alone
     thermal_mass_j_per_k: float
     walls: list[WallConfig] = field(default_factory=list)
+    windows: list[WindowConfig] = field(default_factory=list)
     hvac: HVACConfig = field(default_factory=HVACConfig)
     # CO2 generation rate per occupant (ppm/s at this volume)
     co2_generation_rate: float = 0.005
@@ -49,11 +59,11 @@ class RoomPhysicsConfig:
     co2_decay_rate: float = 0.0001
 
 
-def estimate_thermal_mass(volume_m3: float, furnishing_factor: float = 4.0) -> float:
+def estimate_thermal_mass(volume_m3: float, furnishing_factor: float = 3.0) -> float:
     """Estimate thermal mass from room volume.
 
     Air has ~1200 J/(m³·K). Furnishings add thermal mass.
-    furnishing_factor=4.0 means total thermal mass is 4x air alone.
+    furnishing_factor=3.0 means total thermal mass is 3x air alone.
     """
     air_thermal_mass = volume_m3 * 1200  # J/K
     return air_thermal_mass * furnishing_factor

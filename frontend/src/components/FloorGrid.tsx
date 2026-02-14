@@ -143,11 +143,25 @@ export function FloorGrid({
         ctx.font = "bold 14px sans-serif";
         ctx.fillText(displayValue, labelX, labelY + 8);
 
-        // Draw waste indicator
-        if (roomMetrics.waste_patterns.length > 0) {
-          ctx.fillStyle = "#ff4444";
-          ctx.font = "16px sans-serif";
-          ctx.fillText("⚠", labelX + 30, labelY - 8);
+        // Draw waste indicator with pattern-specific icon
+        if ((roomMetrics.waste_patterns?.length ?? 0) > 0) {
+          const patterns = roomMetrics.waste_patterns ?? [];
+          const hasWindowOpen = patterns.includes("open_window_heating");
+          const hasExcessiveVent = patterns.includes("excessive_ventilation");
+
+          if (hasWindowOpen) {
+            ctx.fillStyle = "#50c8ff";
+            ctx.font = "16px sans-serif";
+            ctx.fillText("🪟", labelX + 30, labelY - 8);
+          } else if (hasExcessiveVent) {
+            ctx.fillStyle = "#64dcb4";
+            ctx.font = "16px sans-serif";
+            ctx.fillText("💨", labelX + 30, labelY - 8);
+          } else {
+            ctx.fillStyle = "#ff4444";
+            ctx.font = "16px sans-serif";
+            ctx.fillText("⚠", labelX + 30, labelY - 8);
+          }
         }
       }
     }

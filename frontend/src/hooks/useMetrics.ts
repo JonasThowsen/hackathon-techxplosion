@@ -55,6 +55,10 @@ export function useMetrics(useMock: boolean = true): {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as MetricsUpdate;
+          // Backend sends heating_power + ventilation_power; compute power for the frontend
+          for (const room of Object.values(data.rooms)) {
+            room.power = (room.heating_power ?? 0) + (room.ventilation_power ?? 0);
+          }
           setMetrics(data);
         } catch {
           console.error("Failed to parse metrics:", event.data);

@@ -42,7 +42,26 @@ class OverHeating:
     duration_minutes: float
 
 
-type WastePattern = EmptyRoomHeating | OverHeating
+@dataclass
+class OpenWindowHeating:
+    """Heating running while temperature is dropping (likely open window)."""
+
+    room_name: str
+    estimated_kwh_wasted: float
+    duration_minutes: float
+    temp_drop_rate: float  # °C per tick
+
+
+@dataclass
+class ExcessiveVentilation:
+    """Ventilation running at full in unoccupied room with good air quality."""
+
+    room_name: str
+    estimated_kwh_wasted: float
+    duration_minutes: float
+
+
+type WastePattern = EmptyRoomHeating | OverHeating | OpenWindowHeating | ExcessiveVentilation
 
 
 def waste_pattern_id(pattern: WastePattern) -> str:
@@ -52,6 +71,10 @@ def waste_pattern_id(pattern: WastePattern) -> str:
             return "empty_room_heating_on"
         case OverHeating():
             return "over_heating"
+        case OpenWindowHeating():
+            return "open_window_heating"
+        case ExcessiveVentilation():
+            return "excessive_ventilation"
 
 
 # ---------------------------------------------------------------------------
@@ -66,7 +89,41 @@ class ReduceHeating:
     target_device: str
 
 
-type Action = ReduceHeating
+@dataclass
+class BoostHeating:
+    """Command to temporarily raise heating to recover baseline comfort."""
+
+    target_device: str
+
+
+@dataclass
+class ReduceVentilation:
+    """Command to lower ventilation in an unoccupied room."""
+
+    target_device: str
+
+
+@dataclass
+class OpenWindowAlert:
+    """Alert that a window appears to be open - reduce heating."""
+
+    target_device: str
+
+
+type Action = ReduceHeating | BoostHeating | ReduceVentilation | OpenWindowAlert
+
+
+def action_id(action: Action) -> str:
+    """Stable string identifier for serialisation / API responses."""
+    match action:
+        case ReduceHeating():
+            return "reduce_heating"
+        case BoostHeating():
+            return "boost_heating"
+        case ReduceVentilation():
+            return "reduce_ventilation"
+        case OpenWindowAlert():
+            return "open_window_alert"
 
 
 # ---------------------------------------------------------------------------

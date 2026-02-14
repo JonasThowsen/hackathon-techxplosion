@@ -45,7 +45,7 @@ export function FloorPlan({
 
   // Animate pulse for waste rooms
   useEffect(() => {
-    const hasWasteRooms = Object.values(metrics).some(m => m.waste_patterns.length > 0);
+    const hasWasteRooms = Object.values(metrics).some(m => (m.waste_patterns?.length ?? 0) > 0);
     if (!hasWasteRooms) return;
 
     const interval = setInterval(() => {
@@ -278,7 +278,7 @@ export function FloorPlan({
     // Draw rooms
     for (const room of floor.rooms) {
       const roomMetrics = metrics[room.id];
-      const hasWaste = roomMetrics && roomMetrics.waste_patterns.length > 0;
+      const hasWaste = roomMetrics && (roomMetrics.waste_patterns?.length ?? 0) > 0;
 
       let fillColor = "rgba(30, 50, 80, 0.6)";
       if (roomMetrics) {
@@ -298,9 +298,22 @@ export function FloorPlan({
       ctx.fillStyle = fillColor;
       ctx.fill();
 
-      // Pulse effect for waste rooms
-      if (hasWaste) {
-        ctx.strokeStyle = `rgba(255, 100, 100, ${pulseIntensity * 0.8})`;
+      // Pulse effect for waste rooms - color varies by pattern type
+      if (hasWaste && roomMetrics) {
+        const patterns = roomMetrics.waste_patterns ?? [];
+        const hasWindowOpen = patterns.includes("open_window_heating");
+        const hasExcessiveVent = patterns.includes("excessive_ventilation");
+
+        if (hasWindowOpen) {
+          // Cyan/blue pulse for open window (cold draft)
+          ctx.strokeStyle = `rgba(80, 200, 255, ${pulseIntensity * 0.9})`;
+        } else if (hasExcessiveVent) {
+          // Teal/green pulse for ventilation waste
+          ctx.strokeStyle = `rgba(100, 220, 180, ${pulseIntensity * 0.8})`;
+        } else {
+          // Red pulse for heating waste
+          ctx.strokeStyle = `rgba(255, 100, 100, ${pulseIntensity * 0.8})`;
+        }
         ctx.lineWidth = 3 * zoom;
         ctx.stroke();
       }
@@ -357,10 +370,24 @@ export function FloorPlan({
           ctx.font = `bold ${fontSize + 4}px monospace`;
           ctx.fillText(displayValue, labelX, labelY + fontSize * 0.5);
 
-          if (roomMetrics.waste_patterns.length > 0) {
-            ctx.fillStyle = "#ff4444";
+          if ((roomMetrics.waste_patterns?.length ?? 0) > 0) {
+            const patterns = roomMetrics.waste_patterns ?? [];
+            const hasWindowOpen = patterns.includes("open_window_heating");
+            const hasExcessiveVent = patterns.includes("excessive_ventilation");
+
+            let icon = "⚠";
+            let iconColor = "#ff4444";
+            if (hasWindowOpen) {
+              icon = "🪟";
+              iconColor = "#50c8ff";
+            } else if (hasExcessiveVent) {
+              icon = "💨";
+              iconColor = "#64dcb4";
+            }
+
+            ctx.fillStyle = iconColor;
             ctx.font = `bold ${fontSize}px sans-serif`;
-            ctx.fillText("⚠", labelX + 30 * zoom, labelY - fontSize);
+            ctx.fillText(icon, labelX + 30 * zoom, labelY - fontSize);
           }
         }
       }

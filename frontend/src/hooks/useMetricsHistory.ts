@@ -25,7 +25,7 @@ export function useMetricsHistory(metrics: MetricsUpdate): MetricsHistory {
     const totalPower = rooms.reduce((sum, r) => sum + r.power, 0);
     const avgTemp = rooms.reduce((sum, r) => sum + r.temperature, 0) / rooms.length;
     const avgCo2 = rooms.reduce((sum, r) => sum + r.co2, 0) / rooms.length;
-    const wasteCount = rooms.filter((r) => r.waste_patterns.length > 0).length;
+    const wasteCount = rooms.filter((r) => (r.waste_patterns?.length ?? 0) > 0).length;
 
     const h = history.current;
     h.power = [...h.power, totalPower].slice(-MAX_HISTORY);

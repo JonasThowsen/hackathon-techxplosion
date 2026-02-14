@@ -6,11 +6,8 @@ from core.models import Room
 from core.sensors import Sensor, SensorKind
 from core.zones.base import (
     Action,
-    EmptyRoomHeating,
     EnergyZone,
     Metrics,
-    OverHeating,
-    ReduceHeating,
     WastePattern,
 )
 
@@ -55,39 +52,8 @@ class RoomZone(EnergyZone):
 
     @override
     def identify_waste(self) -> list[WastePattern]:
-        m = self._last_metrics
-        if m is None:
-            return []
-
-        patterns: list[WastePattern] = []
-
-        # Heating running in empty room
-        if not m.occupancy and m.heating_power > 100.0:
-            patterns.append(
-                EmptyRoomHeating(
-                    room_name=self.room.name,
-                    estimated_kwh_wasted=m.heating_power * 0.001,
-                    duration_minutes=5.0,
-                )
-            )
-
-        # Over-heating (above comfort threshold)
-        if m.temperature > 24.0:
-            patterns.append(
-                OverHeating(
-                    room_name=self.room.name,
-                    estimated_kwh_wasted=(m.temperature - 22.0) * 0.05,
-                    duration_minutes=5.0,
-                )
-            )
-
-        return patterns
+        return []
 
     @override
     def act(self) -> list[Action]:
-        actions: list[Action] = []
-        for waste in self.identify_waste():
-            match waste:
-                case EmptyRoomHeating() | OverHeating():
-                    actions.append(ReduceHeating(target_device=self.room.id))
-        return actions
+        return []

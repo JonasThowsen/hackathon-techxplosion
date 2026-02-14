@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { MetricsUpdate, RoomMetrics } from "../types";
+import type { MetricsUpdate, RoomMetrics, WastePattern } from "../types";
 
 interface SavingsCounterProps {
   metrics: MetricsUpdate;
@@ -9,24 +9,24 @@ interface SavingsCounterProps {
 const ELECTRICITY_PRICE_NOK = 1.5; // NOK per kWh
 const CO2_FACTOR = 0.02; // kg CO2 per kWh
 
+function wasteMultiplier(pattern: WastePattern, data: RoomMetrics): number {
+  switch (pattern) {
+    case "empty_room_heating_on":
+      return data.power * 0.8;
+    case "open_window_heating":
+      return data.power * 0.9;
+    case "over_heating":
+      return data.power * 0.3;
+    case "excessive_ventilation":
+      return data.ventilation_power * 0.9;
+  }
+}
+
 function calculateWasteWatts(rooms: Record<string, RoomMetrics>): number {
   let waste = 0;
   for (const data of Object.values(rooms)) {
-    for (const pattern of data.waste_patterns) {
-      switch (pattern) {
-        case "empty_room_heating_on":
-          waste += data.power * 0.8;
-          break;
-        case "open_window_heating":
-          waste += data.power * 0.9;
-          break;
-        case "over_heating":
-          waste += data.power * 0.3;
-          break;
-        case "appliances_standby":
-          waste += data.power * 0.5;
-          break;
-      }
+    for (const pattern of data.waste_patterns ?? []) {
+      waste += wasteMultiplier(pattern, data);
     }
   }
   return waste;

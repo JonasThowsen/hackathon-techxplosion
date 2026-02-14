@@ -1,5 +1,6 @@
 """Build room physics configs from building layout."""
 
+import logging
 import math
 
 from core.models import BuildingLayout, Room
@@ -7,8 +8,11 @@ from simulation.room_config import (
     HVACConfig,
     RoomPhysicsConfig,
     WallConfig,
+    WindowConfig,
     estimate_thermal_mass,
 )
+
+logger = logging.getLogger(__name__)
 
 # Default wall height
 _WALL_HEIGHT_M = 3.0
@@ -16,12 +20,42 @@ _WALL_HEIGHT_M = 3.0
 # U-values W/(m²·K)
 _U_INTERIOR = 1.5  # Interior walls
 _U_EXTERIOR = 0.5  # Well-insulated exterior walls
+_U_FLOOR_CEILING = 0.4  # Concrete slab between floors
+
+# Window sizing: 30% of exterior wall area
+_WINDOW_FRACTION = 0.3
+
+
+def _wall_orientation(edge_start: tuple[float, float], edge_end: tuple[float, float]) -> str | None:
+    """Determine cardinal orientation of an exterior wall edge.
+
+    Returns N/S/E/W or None if the wall is not axis-aligned.
+    Convention: the orientation is the direction the wall *faces* (outward normal).
+    """
+    dx = edge_end[0] - edge_start[0]
+    dy = edge_end[1] - edge_start[1]
+
+    # Horizontal wall (dy ≈ 0)
+    if abs(dy) < 0.01 and abs(dx) > 0.01:
+        # Polygon is wound clockwise in screen coords (y increases downward).
+        # A top edge (going left-to-right, dx > 0) has outward normal pointing up → North.
+        # A bottom edge (going right-to-left, dx < 0) has outward normal pointing down → South.
+        return "N" if dx > 0 else "S"
+
+    # Vertical wall (dx ≈ 0)
+    if abs(dx) < 0.01 and abs(dy) > 0.01:
+        # A right edge (going top-to-bottom, dy > 0) has outward normal pointing right → East.
+        # A left edge (going bottom-to-top, dy < 0) has outward normal pointing left → West.
+        return "E" if dy > 0 else "W"
+
+    return None
 
 
 def build_room_configs(
     layout: BuildingLayout,
     exterior_u_value: float = _U_EXTERIOR,
     interior_u_value: float = _U_INTERIOR,
+    floor_ceiling_u_value: float = _U_FLOOR_CEILING,
     wall_height: float = _WALL_HEIGHT_M,
 ) -> dict[str, RoomPhysicsConfig]:
     """Build physics configs for all rooms in a building.
@@ -30,6 +64,8 @@ def build_room_configs(
     - Room volumes from polygon area
     - Shared walls between rooms (interior walls)
     - Exterior walls (edges not shared with other rooms)
+    - Windows on exterior walls with correct orientation
+    - Floor/ceiling heat transfer to rooms directly above/below
     """
     configs: dict[str, RoomPhysicsConfig] = {}
 
@@ -39,8 +75,11 @@ def build_room_configs(
         for room in floor.rooms:
             all_rooms.append((room, floor.floor_index))
 
-    # Build adjacency info
+    # Build adjacency info (same-floor walls)
     adjacency = _compute_adjacency(all_rooms)
+
+    # Build vertical adjacency (floor/ceiling between adjacent floors)
+    vertical = _compute_vertical_adjacency(layout)
 
     for room, _ in all_rooms:
         area = _polygon_area(room.polygon)
@@ -48,8 +87,9 @@ def build_room_configs(
         thermal_mass = estimate_thermal_mass(volume)
 
         walls: list[WallConfig] = []
+        windows: list[WindowConfig] = []
 
-        # Process each edge of the polygon
+        # Process each edge of the polygon (horizontal walls)
         edges = _get_edges(room.polygon)
         for edge_start, edge_end in edges:
             edge_len = _distance(edge_start, edge_end)
@@ -59,6 +99,7 @@ def build_room_configs(
             # Find if this edge is shared with another room
             neighbor_id = _find_shared_edge_neighbor(room.id, edge_start, edge_end, adjacency)
 
+            is_exterior = neighbor_id is None
             walls.append(
                 WallConfig(
                     neighbor_id=neighbor_id or "exterior",
@@ -68,13 +109,56 @@ def build_room_configs(
                 )
             )
 
+            # Add window for exterior walls
+            if is_exterior:
+                orientation = _wall_orientation(edge_start, edge_end)
+                if orientation is not None:
+                    window_area = edge_len * wall_height * _WINDOW_FRACTION
+                    windows.append(
+                        WindowConfig(
+                            orientation=orientation,
+                            area_m2=window_area,
+                        )
+                    )
+
+        # Add floor/ceiling "walls" for vertical heat transfer
+        for v_neighbour_id in vertical.get(room.id, []):
+            # Use sqrt(area) as effective length so that area_m2 = polygon area
+            effective_length = math.sqrt(area)
+            walls.append(
+                WallConfig(
+                    neighbor_id=v_neighbour_id,
+                    length_m=effective_length,
+                    height_m=effective_length,
+                    u_value=floor_ceiling_u_value,
+                )
+            )
+
         configs[room.id] = RoomPhysicsConfig(
             room_id=room.id,
             volume_m3=volume,
             thermal_mass_j_per_k=thermal_mass,
             walls=walls,
-            hvac=HVACConfig(),  # Default HVAC settings
+            windows=windows,
+            hvac=HVACConfig(),
         )
+
+    # Log thermal properties for every room
+    for room_id, rc in configs.items():
+        logger.info(
+            "Room %s: thermal_mass=%.1f kJ/K",
+            room_id,
+            rc.thermal_mass_j_per_k / 1000,
+        )
+        for wall in rc.walls:
+            conductance = wall.u_value * wall.area_m2  # W/K
+            logger.info(
+                "  -> %s: U=%.2f W/m²K, A=%.1f m², conductance=%.1f W/K",
+                wall.neighbor_id,
+                wall.u_value,
+                wall.area_m2,
+                conductance,
+            )
 
     return configs
 
@@ -122,25 +206,49 @@ def _compute_adjacency(rooms: list[tuple[Room, int]]) -> dict[str, list[tuple[st
 
     Returns: room_id -> [(neighbor_id, shared_vertices), ...]
     """
-    # Collect vertices per room (snapped to grid)
+    # Collect vertices per room (snapped to grid) and track floor membership
     room_verts: dict[str, set[tuple[float, float]]] = {}
-    for room, _ in rooms:
+    room_floor: dict[str, int] = {}
+    for room, floor_index in rooms:
         verts = {(_snap(p[0]), _snap(p[1])) for p in room.polygon}
         room_verts[room.id] = verts
+        room_floor[room.id] = floor_index
 
-    # Find shared vertices between rooms
+    # Find shared vertices between rooms (same floor only)
     adjacency: dict[str, list[tuple[str, set[tuple[float, float]]]]] = {}
     room_ids = list(room_verts.keys())
 
     for i, room_a in enumerate(room_ids):
-        adjacency[room_a] = []
+        adjacency.setdefault(room_a, [])
         for room_b in room_ids[i + 1 :]:
+            if room_floor[room_a] != room_floor[room_b]:
+                continue
             shared = room_verts[room_a] & room_verts[room_b]
             if len(shared) >= 2:
                 adjacency[room_a].append((room_b, shared))
                 adjacency.setdefault(room_b, []).append((room_a, shared))
 
     return adjacency
+
+
+def _compute_vertical_adjacency(layout: BuildingLayout) -> dict[str, list[str]]:
+    """Find rooms on adjacent floors with overlapping footprints (floor/ceiling)."""
+    neighbours: dict[str, list[str]] = {}
+    sorted_floors = sorted(layout.floors, key=lambda f: f.floor_index)
+
+    for idx in range(len(sorted_floors) - 1):
+        lower = sorted_floors[idx]
+        upper = sorted_floors[idx + 1]
+        for room_a in lower.rooms:
+            verts_a = {(_snap(p[0]), _snap(p[1])) for p in room_a.polygon}
+            for room_b in upper.rooms:
+                verts_b = {(_snap(p[0]), _snap(p[1])) for p in room_b.polygon}
+                shared = verts_a & verts_b
+                if len(shared) >= 2:
+                    neighbours.setdefault(room_a.id, []).append(room_b.id)
+                    neighbours.setdefault(room_b.id, []).append(room_a.id)
+
+    return neighbours
 
 
 def _find_shared_edge_neighbor(

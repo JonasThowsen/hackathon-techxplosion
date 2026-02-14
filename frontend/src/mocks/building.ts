@@ -1,6 +1,6 @@
 // Mock data for testing without backend
 
-import type { BuildingLayout, MetricsUpdate } from "../types";
+import type { BuildingLayout, MetricsUpdate, WastePattern, ActionType } from "../types";
 
 // Student housing floor plan - rooms scaled to fill the view
 export const MOCK_BUILDING: BuildingLayout = {
@@ -105,7 +105,8 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
     let occupied = Math.random() > 0.5;
     let baseCo2 = 450;
     let basePower = 100;
-    const wastePatterns: MetricsUpdate["rooms"][string]["waste_patterns"] = [];
+    const wastePatterns: WastePattern[] = [];
+    const actions: ActionType[] = [];
 
     if (isCorridor) {
       baseTemp = 19;
@@ -119,28 +120,48 @@ export function generateMockMetrics(tick: number): MetricsUpdate {
       basePower = 250;
     }
 
-    // Add some waste patterns
+    // Add some waste patterns and corresponding actions
     if (id === "r-103") {
       wastePatterns.push("empty_room_heating_on");
+      actions.push("reduce_heating");
       baseTemp = 26;
       occupied = false;
       basePower = 200;
     }
     if (id === "r-108") {
       wastePatterns.push("open_window_heating");
+      actions.push("open_window_alert");
       baseTemp = 16;
     }
+    if (id === "r-106" && tick % 5 < 3) {
+      wastePatterns.push("excessive_ventilation");
+      actions.push("reduce_ventilation");
+      occupied = false;
+      basePower = 180;
+    }
     if (id === "r-110") {
+      wastePatterns.push("over_heating");
+      actions.push("reduce_heating");
       baseTemp = 24;
       basePower = 350;
     }
+    if (id === "r-112" && tick % 7 < 2) {
+      wastePatterns.push("open_window_heating");
+      actions.push("open_window_alert");
+      baseTemp = 15;
+    }
 
+    const heating_power = Math.max(0, Math.min(400, vary(basePower * 0.7, 20)));
+    const ventilation_power = Math.max(0, Math.min(200, vary(basePower * 0.3, 10)));
     rooms[id] = {
       temperature: Math.max(15, Math.min(30, vary(baseTemp, 1.5))),
       occupancy: occupied,
       co2: Math.max(300, Math.min(1000, vary(baseCo2, 50))),
-      power: Math.max(0, Math.min(500, vary(basePower, 30))),
+      heating_power,
+      ventilation_power,
+      power: heating_power + ventilation_power,
       waste_patterns: wastePatterns,
+      actions,
     };
   }
 

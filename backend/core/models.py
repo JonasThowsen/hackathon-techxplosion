@@ -1,6 +1,6 @@
 """Core data models for the building energy system."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -35,6 +35,8 @@ class RoomMetrics:
     co2: float
     heating_power: float  # Power used for heating (W)
     ventilation_power: float  # Power used for ventilation (W)
+    waste_patterns: list[str] = field(default_factory=list)
+    actions: list[str] = field(default_factory=list)
 
     @property
     def total_hvac_power(self) -> float:
@@ -42,6 +44,18 @@ class RoomMetrics:
 
 
 @dataclass
+class HeatFlow:
+    """Heat transfer between two adjacent rooms."""
+
+    from_room: str
+    to_room: str
+    watts: float
+
+
+@dataclass
 class MetricsUpdate:
     tick: int
     rooms: dict[str, RoomMetrics]
+    heat_flows: list[HeatFlow] = field(default_factory=list)
+    system_enabled: bool = True
+    sun_enabled: bool = True

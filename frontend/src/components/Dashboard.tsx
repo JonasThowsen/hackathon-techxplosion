@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FloorPlan, type SunPosition } from "./FloorPlan";
 import { EventFeed } from "./EventFeed";
 import { Sparkline } from "./Sparkline";
 import { useMetricsHistory } from "../hooks/useMetricsHistory";
-import type { BuildingLayout, MetricsUpdate, MetricType, RoomMetrics } from "../types";
+import type { BuildingLayout, MetricsUpdate, MetricType, RoomMetrics, WastePattern } from "../types";
 import { METRIC_CONFIGS } from "../types";
 
 interface DashboardProps {
@@ -74,9 +74,8 @@ function aggregateMetrics(
     totalCo2 += data.co2;
 
     // Convert waste patterns to alerts
-    for (const pattern of data.waste_patterns) {
-      const alert = createAlert(roomId, roomNames[roomId] || roomId, pattern, data);
-      if (alert) alerts.push(alert);
+    for (const pattern of data.waste_patterns ?? []) {
+      alerts.push(createAlert(roomId, roomNames[roomId] || roomId, pattern, data));
     }
   }
 
@@ -98,9 +97,9 @@ function aggregateMetrics(
 function createAlert(
   roomId: string,
   roomName: string,
-  pattern: string,
+  pattern: WastePattern,
   data: RoomMetrics
-): Alert | null {
+): Alert {
   switch (pattern) {
     case "empty_room_heating_on":
       return {
@@ -108,7 +107,7 @@ function createAlert(
         roomName,
         pattern,
         severity: "warning",
-        message: `Heating inefficiency detected (${data.temperature.toFixed(1)}°C)`,
+        message: `Heating running in empty room (${data.temperature.toFixed(1)}°C)`,
         estimatedWaste: data.power * 0.8,
       };
     case "open_window_heating":
@@ -117,7 +116,7 @@ function createAlert(
         roomName,
         pattern,
         severity: "critical",
-        message: `Heat loss detected (${data.temperature.toFixed(1)}°C)`,
+        message: `Window open - heat loss (${data.temperature.toFixed(1)}°C)`,
         estimatedWaste: data.power * 0.9,
       };
     case "over_heating":
@@ -129,17 +128,15 @@ function createAlert(
         message: `Excess heating (${data.temperature.toFixed(1)}°C)`,
         estimatedWaste: data.power * 0.3,
       };
-    case "appliances_standby":
+    case "excessive_ventilation":
       return {
         roomId,
         roomName,
         pattern,
         severity: "warning",
-        message: `Standby power draw`,
-        estimatedWaste: data.power * 0.5,
+        message: `Unnecessary ventilation in empty room`,
+        estimatedWaste: data.ventilation_power * 0.9,
       };
-    default:
-      return null;
   }
 }
 
@@ -151,6 +148,37 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
     x: number;
     y: number;
   } | null>(null);
+  const [systemEnabled, setSystemEnabled] = useState(true);
+  const [sunEnabled, setSunEnabled] = useState(true);
+
+  useEffect(() => {
+    if (metrics.system_enabled !== undefined) {
+      setSystemEnabled(metrics.system_enabled);
+    }
+    if (metrics.sun_enabled !== undefined) {
+      setSunEnabled(metrics.sun_enabled);
+    }
+  }, [metrics]);
+
+  const handleToggle = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/system/toggle", { method: "POST" });
+      const data = await res.json() as { enabled: boolean };
+      setSystemEnabled(data.enabled);
+    } catch (e) {
+      console.error("Failed to toggle system:", e);
+    }
+  };
+
+  const handleSunToggle = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/sun/toggle", { method: "POST" });
+      const data = await res.json() as { enabled: boolean };
+      setSunEnabled(data.enabled);
+    } catch (e) {
+      console.error("Failed to toggle sun:", e);
+    }
+  };
 
   const floor = building.floors[selectedFloor];
   const history = useMetricsHistory(metrics);
@@ -180,6 +208,37 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
           <span className="building-name">{building.name}</span>
         </div>
         <div className="header-right">
+          <button
+            className={`system-toggle ${systemEnabled ? "on" : "off"}`}
+            onClick={handleToggle}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              background: systemEnabled ? "#22c55e" : "#ef4444",
+              color: "#fff",
+            }}
+          >
+            Control: {systemEnabled ? "ON" : "OFF"}
+          </button>
+          <button
+            onClick={handleSunToggle}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "6px",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              background: sunEnabled ? "#f59e0b" : "#6b7280",
+              color: "#fff",
+            }}
+          >
+            Sun: {sunEnabled ? "ON" : "OFF"}
+          </button>
           <span className={`live-indicator ${connected === false ? "disconnected" : ""}`}>
             <span className="live-dot" /> {connected === false ? "Reconnecting..." : "Live"}
           </span>
@@ -189,6 +248,20 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
           </button>
         </div>
       </header>
+      {!systemEnabled && (
+        <div
+          style={{
+            background: "#fef3cd",
+            color: "#856404",
+            padding: "8px 16px",
+            textAlign: "center",
+            fontSize: "0.9rem",
+            fontWeight: 500,
+          }}
+        >
+          Control system disabled — monitoring only. Waste patterns detected but not acted upon.
+        </div>
+      )}
 
       <div className="dashboard-content">
         {/* Summary Cards */}
@@ -284,7 +357,7 @@ export function Dashboard({ building, metrics, sunPosition, onOpenEditor, connec
                   .flatMap(f => f.rooms)
                   .find(r => r.id === roomId)?.name || roomId;
                 const percent = (data.power / aggregated.totalPower) * 100;
-                const hasWaste = data.waste_patterns.length > 0;
+                const hasWaste = (data.waste_patterns?.length ?? 0) > 0;
 
                 return (
                   <div key={roomId} className="flow-bar-row">
@@ -403,9 +476,9 @@ function RoomTooltip({ metrics, room, x, y }: RoomTooltipProps) {
         <span>Power:</span>
         <span>{metrics.power.toFixed(0)} W</span>
       </div>
-      {metrics.waste_patterns.length > 0 && (
+      {(metrics.waste_patterns?.length ?? 0) > 0 && (
         <div className="tooltip-waste">
-          Issue: {metrics.waste_patterns.map(p => p.replace(/_/g, " ")).join(", ")}
+          Issue: {metrics.waste_patterns!.map(p => p.replace(/_/g, " ")).join(", ")}
         </div>
       )}
     </div>
